@@ -1,4 +1,11 @@
-## Synopsis
+# Sysinfo
+
+[![Build Status](https://travis-ci.org/zcalusic/sysinfo.svg?branch=master)](https://travis-ci.org/zcalusic/sysinfo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zcalusic/sysinfo)](https://goreportcard.com/report/github.com/zcalusic/sysinfo)
+[![GoDoc](https://godoc.org/github.com/zcalusic/sysinfo?status.svg)](https://godoc.org/github.com/zcalusic/sysinfo)
+[![License](https://img.shields.io/badge/license-MIT-a31f34.svg?maxAge=2592000)](https://github.com/zcalusic/sysinfo/blob/master/LICENSE)
+[![Powered by](https://img.shields.io/badge/powered_by-Go-5272b4.svg?maxAge=2592000)](https://golang.org/)
+[![Platform](https://img.shields.io/badge/platform-Linux-009bde.svg?maxAge=2592000)](https://www.linuxfoundation.org/)
 
 Package sysinfo is a pure Go library providing Linux OS / kernel / hardware system information. It's completely
 standalone, has no dependencies on the host system, doesn't execute external programs, doesn't even import other Go
@@ -53,6 +60,7 @@ with more features and standardization efforts of the systemd team (think
 ## Requirements
 
 Sysinfo requires:
+
 - Linux kernel 2.6.23 or later (actually, this is what Go runtime [requires](https://golang.org/doc/install))
 - access to /sys & /proc Linux virtual filesystems
 - access to various files in /etc, /var, /run FS hierarchy
