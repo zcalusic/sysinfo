@@ -13,7 +13,7 @@ libraries. It collects only "inventory type" information, things that don't chan
 
 ## Code Example
 
-```
+```go
 package main
 
 import (
@@ -90,7 +90,7 @@ go get github.com/zcalusic/sysinfo/cmd/sysinfo
 
 ## Sample output
 
-```
+```json
 {
   "sysinfo": {
     "version": "0.9.0",
