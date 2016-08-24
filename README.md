@@ -61,8 +61,8 @@ with more features and standardization efforts of the systemd team (think
 
 Sysinfo requires:
 
-- Linux kernel 2.6.23 or later (actually, this is what Go runtime [requires](https://golang.org/doc/install))
-- access to /sys & /proc Linux virtual filesystems
+- Linux kernel 2.6.23 or later (actually, this is what Go's run-time [requires](https://golang.org/doc/install))
+- access to /sys & /proc Linux virtual file systems
 - access to various files in /etc, /var, /run FS hierarchy
 - access to DMI system data via /dev/mem virtual device (read: superuser privileges)
 
@@ -80,7 +80,7 @@ Just use go get.
 go get github.com/zcalusic/sysinfo
 ```
 
-There's also a very simple utility demonstrating sysinfo library capabilites. Start it (as the superuser) to get pretty
+There's also a very simple utility demonstrating sysinfo library capabilities. Start it (as the superuser) to get pretty
 formatted JSON output of all the info that sysinfo library provides. Due to its simplicity, the source code of the
 utility also doubles down as an example of how to use the library.
 
