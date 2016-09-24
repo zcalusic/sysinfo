@@ -93,8 +93,8 @@ go get github.com/zcalusic/sysinfo/cmd/sysinfo
 ```json
 {
   "sysinfo": {
-    "version": "0.9.0",
-    "timestamp": "2016-08-21T23:06:08.018137215+02:00"
+    "version": "0.9.1",
+    "timestamp": "2016-09-24T13:30:28.369498856+02:00"
   },
   "node": {
     "hostname": "web12",
@@ -118,6 +118,21 @@ go get github.com/zcalusic/sysinfo/cmd/sysinfo
     "vendor": "Huawei",
     "version": "V100R003",
     "serial": "2103711GEL10F3430658"
+  },
+  "board": {
+    "name": "BC11HGSA0",
+    "vendor": "Huawei",
+    "version": "V100R003",
+    "serial": "033HXVCNG3107624"
+  },
+  "chassis": {
+    "type": 17,
+    "vendor": "Huawei"
+  },
+  "bios": {
+    "vendor": "Insyde Corp.",
+    "version": "3.16",
+    "date": "03/16/2016"
   },
   "cpu": {
     "vendor": "GenuineIntel",
@@ -163,7 +178,7 @@ go get github.com/zcalusic/sysinfo/cmd/sysinfo
 - [x] OS info
 - [x] Kernel info
 - [x] Product info
-- [ ] BIOS/Board/Chassis info
+- [x] BIOS/Board/Chassis info
 - [x] CPU info
 - [x] Memory info
 - [x] Storage info
