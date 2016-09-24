@@ -14,6 +14,7 @@ type SysInfo struct {
 	Product Product         `json:"product"`
 	Board   Board           `json:"board"`
 	Chassis Chassis         `json:"chassis"`
+	BIOS    BIOS            `json:"bios"`
 	CPU     CPU             `json:"cpu"`
 	Memory  Memory          `json:"memory"`
 	Storage []StorageDevice `json:"storage"`
@@ -34,6 +35,7 @@ func (si *SysInfo) GetSysInfo() {
 	si.getProductInfo()
 	si.getBoardInfo()
 	si.getChassisInfo()
+	si.getBIOSInfo()
 	si.getCPUInfo()
 	si.getMemoryInfo()
 	si.getStorageInfo()
