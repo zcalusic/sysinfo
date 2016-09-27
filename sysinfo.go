@@ -17,8 +17,8 @@ type SysInfo struct {
 	BIOS    BIOS            `json:"bios"`
 	CPU     CPU             `json:"cpu"`
 	Memory  Memory          `json:"memory"`
-	Storage []StorageDevice `json:"storage"`
-	Network []NetworkDevice `json:"network"`
+	Storage []StorageDevice `json:"storage,omitempty"`
+	Network []NetworkDevice `json:"network,omitempty"`
 }
 
 // GetSysInfo gathers all available system information.
