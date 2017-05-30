@@ -11,6 +11,7 @@ import (
 
 // https://en.wikipedia.org/wiki/CPUID#EAX.3D0:_Get_vendor_ID
 var hvmap = map[string]string{
+	"bhyve bhyve ": "bhyve",
 	"KVMKVMKVM":    "kvm",
 	"Microsoft Hv": "hyperv",
 	"VMwareVMware": "vmware",
