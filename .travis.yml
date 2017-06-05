@@ -3,14 +3,14 @@ sudo: false
 language: go
 
 go:
-  - 1.6.4
-  - 1.7.6
-  - 1.8.3
-  - tip
+  - 1.6.x
+  - 1.7.x
+  - 1.8.x
+  - master
 
 matrix:
   allow_failures:
-    - go: tip
+    - go: master
 
 branches:
   only:
