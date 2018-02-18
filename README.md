@@ -68,9 +68,7 @@ Sysinfo requires:
 
 Sysinfo doesn't require ANY other external utility on the target system, which is its primary strength, IMHO.
 
-Sysinfo is developed on Linux amd64 using Go 1.7, and only occasionally tested on Linux i386, but it should work equally
-well on both architectures. As it heavily depends on Linux internals, there are no plans to support other operating
-systems. But, I would like it to support all Linux architectures, eventually.
+It heavily depends on Linux internals, so there are no plans to support other operating systems.
 
 ## Installation
 
