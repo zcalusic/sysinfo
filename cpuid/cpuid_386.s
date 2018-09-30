@@ -4,10 +4,10 @@
 
 // +build !gccgo
 
-TEXT ·cpuid(SB),$0-12
-	MOVL ax+8(FP), AX
+TEXT ·CPUID(SB),$0-8
+	MOVL ax+4(FP), AX
 	CPUID
-	MOVQ info+0(FP), DI
+	MOVL info+0(FP), DI
 	MOVL AX, 0(DI)
 	MOVL BX, 4(DI)
 	MOVL CX, 8(DI)

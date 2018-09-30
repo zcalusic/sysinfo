@@ -7,6 +7,8 @@ package sysinfo
 import (
 	"strings"
 	"unsafe"
+
+	"github.com/zcalusic/sysinfo/cpuid"
 )
 
 // https://en.wikipedia.org/wiki/CPUID#EAX.3D0:_Get_vendor_ID
@@ -18,18 +20,15 @@ var hvmap = map[string]string{
 	"XenVMMXenVMM": "xenhvm",
 }
 
-// cpuid_amd64.s, cpuid_386.s, cpuid_default.s
-func cpuid(info *[4]uint32, ax uint32)
-
 func isHypervisorActive() bool {
 	var info [4]uint32
-	cpuid(&info, 0x1)
+	cpuid.CPUID(&info, 0x1)
 	return info[2]&(1<<31) != 0
 }
 
 func getHypervisorCpuid(ax uint32) string {
 	var info [4]uint32
-	cpuid(&info, ax)
+	cpuid.CPUID(&info, ax)
 	return hvmap[strings.TrimRight(string((*[12]byte)(unsafe.Pointer(&info[1]))[:]), "\000")]
 }
 
