@@ -26,18 +26,22 @@ func (si *SysInfo) GetSysInfo() {
 	// Meta info
 	si.getMetaInfo()
 
-	// Software info
-	si.getNodeInfo()
-	si.getOSInfo()
-	si.getKernelInfo()
-
-	// Hardware info
+	// DMI info
 	si.getProductInfo()
 	si.getBoardInfo()
 	si.getChassisInfo()
+
+	// Node info
+	si.getNodeInfo()
+
+	// Hardware info
 	si.getBIOSInfo()
-	si.getCPUInfo()
+	si.getCPUInfo() // depends on Node info
 	si.getMemoryInfo()
 	si.getStorageInfo()
 	si.getNetworkInfo()
+
+	// Software info
+	si.getOSInfo()
+	si.getKernelInfo()
 }
