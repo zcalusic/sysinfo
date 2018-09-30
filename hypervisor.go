@@ -55,5 +55,11 @@ func (si *SysInfo) getHypervisor() {
 		return
 	}
 
+	// getBIOSInfo() must have run first, to detect BIOS vendor
+	if si.BIOS.Vendor == "Bochs" {
+		si.Node.Hypervisor = "bochs"
+		return
+	}
+
 	si.Node.Hypervisor = "unknown"
 }
