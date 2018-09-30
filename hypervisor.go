@@ -16,6 +16,7 @@ var hvmap = map[string]string{
 	"bhyve bhyve ": "bhyve",
 	"KVMKVMKVM":    "kvm",
 	"Microsoft Hv": "hyperv",
+	" lrpepyh vr":  "parallels",
 	"VMwareVMware": "vmware",
 	"XenVMMXenVMM": "xenhvm",
 }
