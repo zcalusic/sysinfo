@@ -76,11 +76,6 @@ func (si *SysInfo) getSetMachineID() {
 }
 
 func (si *SysInfo) getTimezone() {
-	if timezone := slurpFile("/etc/timezone"); timezone != "" {
-		si.Node.Timezone = timezone
-		return
-	}
-
 	if fi, err := os.Lstat("/etc/localtime"); err == nil {
 		if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
 			if tzfile, err := os.Readlink("/etc/localtime"); err == nil {
@@ -90,6 +85,11 @@ func (si *SysInfo) getTimezone() {
 				}
 			}
 		}
+	}
+
+	if timezone := slurpFile("/etc/timezone"); timezone != "" {
+		si.Node.Timezone = timezone
+		return
 	}
 
 	if f, err := os.Open("/etc/sysconfig/clock"); err == nil {
