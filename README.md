@@ -43,11 +43,13 @@ func main() {
 I couldn't find any self-contained library that would provide set of data/features I needed. So another sysinfo was
 born.
 
-The purpose of the library is to collect only inventory info. No metrics like CPU usage or load average will be
-added. The rule of thumb is, if it's changing during the day, every day, it doesn't belong in the library.
+The purpose of the library is to collect only inventory info. No metrics like CPU usage or load average will be added.
+The rule of thumb is, if it's changing during the day, every day, it doesn't belong in the library.
 
-So far the library has been tested to offer full functionality on the following distros:
+The library should work well on any Linux distribution. Here's just a small list of distributions on which the library
+has been successfully tested. If your favorite distro is not on the list, feel free to open an issue and report success.
 
+- [x] Fedora 28
 - [x] CentOS 6, 7
 - [x] Debian 7, 8, 9, unstable
 - [x] Ubuntu 12.04, 14.04, 16.04, 18.04
