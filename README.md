@@ -17,24 +17,34 @@ libraries. It collects only "inventory type" information, things that don't chan
 package main
 
 import (
-        "encoding/json"
-        "fmt"
-        "log"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os/user"
 
-        "github.com/zcalusic/sysinfo"
+	"github.com/zcalusic/sysinfo"
 )
 
 func main() {
-        var si sysinfo.SysInfo
+	current, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-        si.GetSysInfo()
+	if current.Uid != "0" {
+		log.Fatal("requires superuser privilege")
+	}
 
-        data, err := json.MarshalIndent(&si, "", "  ")
-        if err != nil {
-                log.Fatal(err)
-        }
+	var si sysinfo.SysInfo
 
-        fmt.Println(string(data))
+	si.GetSysInfo()
+
+	data, err := json.MarshalIndent(&si, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(string(data))
 }
 ```
 
@@ -65,7 +75,7 @@ Sysinfo requires:
 - Linux kernel 2.6.23 or later (actually, this is what Go's run-time [requires](https://golang.org/doc/install))
 - access to /sys & /proc Linux virtual file systems
 - access to various files in /etc, /var, /run FS hierarchy
-- access to DMI system data via /dev/mem virtual device (read: superuser privileges)
+- access to DMI system data via /dev/mem virtual device (requires superuser privilege)
 
 Sysinfo doesn't require ANY other external utility on the target system, which is its primary strength, IMHO.
 
