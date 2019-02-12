@@ -43,6 +43,7 @@ var (
 	reUbuntu     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+) `)
 	reCentOS6    = regexp.MustCompile(`^CentOS release 6\.\d (.*)`)
+	reRedhat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
 
 func genOSRelease() {
@@ -94,6 +95,17 @@ func (si *SysInfo) getOSInfo() {
 		if release := slurpFile("/etc/centos-release"); release != "" {
 			if m := reCentOS.FindStringSubmatch(release); m != nil {
 				si.OS.Release = m[2]
+			}
+		}
+	case "rhel":
+		if release := slurpFile("/etc/redhat-release"); release != "" {
+			if m := reRedhat.FindStringSubmatch(release); m != nil {
+				si.OS.Release = m[1]
+			}
+		}
+		if len(si.OS.Release) == 0 {
+			if m := reRedhat.FindStringSubmatch(si.OS.Name); m != nil {
+				si.OS.Release = m[1]
 			}
 		}
 	}
