@@ -176,6 +176,9 @@ func dmiString(dmiRawData []byte, baseOffset int, offset int) string {
 	}
 	var dmiLen = int(dmiRawData[baseOffset+1])
 	var lastOffset = baseOffset + dmiLen
+	if lastOffset > len(dmiRawData) {
+		lastOffset = len(dmiRawData)
+	}
 	for i := lastOffset; i < len(dmiRawData); i++ {
 		if bytes.Equal(dmiRawData[i:i+2], []byte{0, 0}) {
 			lastOffset = i + 2
@@ -183,7 +186,11 @@ func dmiString(dmiRawData []byte, baseOffset int, offset int) string {
 		}
 	}
 	var dmiData = dmiRawData[baseOffset:lastOffset]
-	var dmiAdditionData = bytes.Split(dmiData[dmiLen:lastOffset], []byte{0})
+	var dmiDataLastOffset = lastOffset
+	if dmiDataLastOffset > len(dmiData) {
+		dmiDataLastOffset = len(dmiData)
+	}
+	var dmiAdditionData = bytes.Split(dmiData[dmiLen:dmiDataLastOffset], []byte{0})
 	return strings.TrimSpace(string(dmiAdditionData[slot-1]))
 }
 
