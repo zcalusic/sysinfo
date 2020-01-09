@@ -102,6 +102,7 @@ func (si *SysInfo) getNetworkInfo() {
 		return
 	}
 
+	si.Network = make([]NetworkDevice, 0)
 	for _, link := range devices {
 		fullpath := path.Join(sysClassNet, link.Name())
 		dev, err := os.Readlink(fullpath)

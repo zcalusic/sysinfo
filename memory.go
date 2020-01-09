@@ -163,6 +163,7 @@ func (si *SysInfo) getMemoryInfo() {
 	}
 	defer syscall.Munmap(mem)
 
+	si.Memory.Size = 0
 	var memSizeAlt uint
 loop:
 	for p := 0; p < len(mem)-1; {

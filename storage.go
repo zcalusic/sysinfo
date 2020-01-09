@@ -65,6 +65,7 @@ func (si *SysInfo) getStorageInfo() {
 		return
 	}
 
+	si.Storage = make([]StorageDevice, 0)
 	for _, link := range devices {
 		fullpath := path.Join(sysBlock, link.Name())
 		dev, err := os.Readlink(fullpath)
