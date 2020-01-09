@@ -7,9 +7,9 @@
 [![Powered by](https://img.shields.io/badge/powered_by-Go-5272b4.svg?maxAge=2592000)](https://golang.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-009bde.svg?maxAge=2592000)](https://www.linuxfoundation.org/)
 
-Package sysinfo is a pure Go library providing Linux OS / kernel / hardware system information. It's completely
-standalone, has no dependencies on the host system, doesn't execute external programs, doesn't even import other Go
-libraries. It collects only "inventory type" information, things that don't change often.
+Package sysinfo is a Go library providing Linux OS / kernel / hardware system information. It's completely standalone,
+has no dependencies on the host system, doesn't execute external programs, doesn't even import other Go libraries. It
+collects only "inventory type" information, things that don't change often.
 
 ## Code Example
 
