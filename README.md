@@ -62,7 +62,7 @@ has been successfully tested. If your favorite distro is not on the list, feel f
 - [x] Fedora 28
 - [x] CentOS 6, 7
 - [x] Debian 7, 8, 9, 10...
-- [x] Ubuntu 12.04, 14.04, 16.04, 18.04...
+- [x] Ubuntu 12.04, 14.04, 16.04, 18.04, 20.04...
 
 While older distributions can be a bit problematic, all newer should work out of the box thanks to modern kernels with
 more features and standardization efforts of the systemd team (think
@@ -96,6 +96,10 @@ utility also doubles down as an example of how to use the library.
 ```
 go get github.com/zcalusic/sysinfo/cmd/sysinfo
 ```
+
+--
+
+Build demo utility in Docker container:  https://github.com/mattscilipoti/compile_sysinfo
 
 ## Sample output
 
