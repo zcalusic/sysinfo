@@ -40,6 +40,14 @@ func qword(data []byte, index int) uint64 {
 	return binary.LittleEndian.Uint64(data[index : index+8])
 }
 
+func cloneBytes(bytes []byte) []byte {
+	bs := make([]byte, len(bytes))
+	for i := range bs {
+		bs[i] = bytes[i]
+	}
+	return bs
+}
+
 func epsChecksum(sl []byte) (sum byte) {
 	for _, v := range sl {
 		sum += v
@@ -80,6 +88,7 @@ func getStructureTableAddressEFI(f *os.File) (address int64, length int, err err
 			return 0, 0, err
 		}
 		defer syscall.Munmap(eps)
+		eps = cloneBytes(eps)
 
 		if !epsValid(eps) {
 			break
@@ -101,6 +110,7 @@ func getStructureTableAddress(f *os.File) (address int64, length int, err error)
 		return 0, 0, err
 	}
 	defer syscall.Munmap(mem)
+	mem = cloneBytes(mem)
 
 	for i := range mem {
 		if i > len(mem)-epsSize {
@@ -162,6 +172,7 @@ func (si *SysInfo) getMemoryInfo() {
 		return
 	}
 	defer syscall.Munmap(mem)
+	mem = cloneBytes(mem)
 
 	si.Memory.Size = 0
 	var memSizeAlt uint
