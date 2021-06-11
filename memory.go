@@ -16,11 +16,29 @@ import (
 	"syscall"
 )
 
+// Memory Detailed information.
+type MemoryDevice struct {
+	Type                 string   `json:"type,omitempty"`
+	TypeDetail           []string `json:"typeDetail,omitempty"`
+	Speed                uint     `json:"speed,omitempty"` // RAM data rate in MT/s
+	Size                 uint     `json:"size,omitempty"`  // RAM size in MB
+	DataWidth            uint     `json:"dataWidth,omitempty"`
+	Factor               string   `json:"factor,omitempty"`
+	Locator              string   `json:"locator,omitempty"`
+	Bank                 string   `json:"bank,omitempty"`
+	Manufacturer         string   `json:"manufacturer,omitempty"`
+	SerialNumber         string   `json:"serialNumber,omitempty"`
+	AssetTag             string   `json:"assetTag,omitempty"`
+	PartNumber           string   `json:"partNumber,omitempty"`
+	ConfiguredClockSpeed uint     `json:"configuredClockSpeed,omitempty"`
+}
+
 // Memory information.
 type Memory struct {
-	Type  string `json:"type,omitempty"`
-	Speed uint   `json:"speed,omitempty"` // RAM data rate in MT/s
-	Size  uint   `json:"size,omitempty"`  // RAM size in MB
+	Type     string          `json:"type,omitempty"`
+	Speed    uint            `json:"speed,omitempty"`    // RAM data rate in MT/s
+	Size     uint            `json:"size,omitempty"`     // RAM size in MB
+	Memories []*MemoryDevice `json:"memories,omitempty"` // RAM Details
 }
 
 const epsSize = 0x1f
@@ -161,6 +179,31 @@ func getStructureTable() ([]byte, error) {
 	return mem[align:], nil
 }
 
+func dmiString(dmiRawData []byte, baseOffset int, offset int) string {
+	var slot = int(dmiRawData[baseOffset+offset])
+	if slot == 0 {
+		return "Not Specified"
+	}
+	var dmiLen = int(dmiRawData[baseOffset+1])
+	var lastOffset = baseOffset + dmiLen
+	if lastOffset > len(dmiRawData) {
+		lastOffset = len(dmiRawData)
+	}
+	for i := lastOffset; i < len(dmiRawData); i++ {
+		if bytes.Equal(dmiRawData[i:i+2], []byte{0, 0}) {
+			lastOffset = i + 2
+			break
+		}
+	}
+	var dmiData = dmiRawData[baseOffset:lastOffset]
+	var dmiDataLastOffset = lastOffset
+	if dmiDataLastOffset > len(dmiData) {
+		dmiDataLastOffset = len(dmiData)
+	}
+	var dmiAdditionData = bytes.Split(dmiData[dmiLen:dmiDataLastOffset], []byte{0})
+	return strings.TrimSpace(string(dmiAdditionData[slot-1]))
+}
+
 func (si *SysInfo) getMemoryInfo() {
 	mem, err := getStructureTable()
 	if err != nil {
@@ -187,6 +230,10 @@ loop:
 				si.CPU.Speed = uint(word(mem, p+0x16))
 			}
 		case 17:
+			if si.Memory.Memories == nil {
+				si.Memory.Memories = make([]*MemoryDevice, 0)
+			}
+
 			size := uint(word(mem, p+0x0c))
 			if size == 0 || size == 0xffff || size&0x8000 == 0x8000 {
 				break
@@ -198,28 +245,73 @@ loop:
 					break
 				}
 			}
-
 			si.Memory.Size += size
 
+			var memType string
+			// SMBIOS Reference Specification Version 3.0.0, page 92
+			memTypes := [...]string{
+				"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
+				"EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM", "SGRAM", "RDRAM",
+				"DDR", "DDR2", "DDR2 FB-DIMM", "Reserved", "Reserved", "Reserved", "DDR3",
+				"FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4",
+			}
+			if index := int(mem[p+0x12]); index >= 1 && index <= len(memTypes) {
+				memType = memTypes[index-1]
+			}
 			if si.Memory.Type == "" {
-				// SMBIOS Reference Specification Version 3.0.0, page 92
-				memTypes := [...]string{
-					"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
-					"EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM", "SGRAM", "RDRAM",
-					"DDR", "DDR2", "DDR2 FB-DIMM", "Reserved", "Reserved", "Reserved", "DDR3",
-					"FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4",
-				}
+				si.Memory.Type = memType
+			}
 
-				if index := int(mem[p+0x12]); index >= 1 && index <= len(memTypes) {
-					si.Memory.Type = memTypes[index-1]
+			var memTypeDetailed = make([]string, 0)
+			typeDetail := [...]string{
+				"Other", "Unknown", "Fast-paged", "Static Column", "Pseudo-static",
+				"RAMBus", "Synchronous", "CMOS", "EDO", "Window DRAM", "Cache DRAM",
+				"Non-Volatile", "Registered (Buffered)", "Unbuffered (Unregistered)",
+				"LRDIMM",
+			}
+			if w := word(mem, p+0x13); w&0xfffe != 0 {
+				for i := 1; i <= len(typeDetail); i++ {
+					if w&(1<<uint(i)) != 0 {
+						memTypeDetailed = append(memTypeDetailed, typeDetail[i-1])
+					}
 				}
 			}
 
-			if si.Memory.Speed == 0 && recLen >= 0x17 {
+			var memSpeed uint
+			if recLen >= 0x17 {
 				if speed := uint(word(mem, p+0x15)); speed != 0 {
-					si.Memory.Speed = speed
+					if si.Memory.Speed == 0 {
+						si.Memory.Speed = speed
+					}
+					memSpeed = speed
 				}
 			}
+
+			var memFactor string
+			factors := [...]string{
+				"Other", "Unknown", "SIMM", "SIP", "Chip", "DIP", "ZIP", "Proprietary Card",
+				"DIMM", "TSOP", "Row Of Chips", "RIMM", "SODIMM", "SRIMM", "FB-DIMM",
+			}
+			if index := int(mem[p+0x0e]); index >= 1 && index <= 0x0f {
+				memFactor = factors[index-1]
+			}
+
+			var mem = &MemoryDevice{
+				Type:                 memType,
+				TypeDetail:           memTypeDetailed,
+				Speed:                memSpeed,
+				Size:                 size,
+				DataWidth:            uint(word(mem, p+0x0a)),
+				Factor:               memFactor,
+				Locator:              dmiString(mem, p, 0x10),
+				Bank:                 dmiString(mem, p, 0x11),
+				Manufacturer:         dmiString(mem, p, 0x17),
+				SerialNumber:         dmiString(mem, p, 0x18),
+				AssetTag:             dmiString(mem, p, 0x19),
+				PartNumber:           dmiString(mem, p, 0x1a),
+				ConfiguredClockSpeed: uint(word(mem, p+0x20)),
+			}
+			si.Memory.Memories = append(si.Memory.Memories, mem)
 		case 19:
 			start := uint(dword(mem, p+0x04))
 			end := uint(dword(mem, p+0x08))
