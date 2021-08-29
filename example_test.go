@@ -8,11 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"testing"
 
 	"github.com/zcalusic/sysinfo"
 )
 
-func Example() {
+func Test(t *testing.T) {
 	var si sysinfo.SysInfo
 
 	si.GetSysInfo()
