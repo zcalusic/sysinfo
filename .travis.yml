@@ -3,8 +3,8 @@ sudo: false
 language: go
 
 go:
-  - 1.15.x
   - 1.16.x
+  - 1.17.x
   - master
 
 matrix:
