@@ -71,15 +71,15 @@ func genOSRelease() {
 	if release := slurpFile("/etc/redhat-release"); release != "" {
 		if m := reRedhat6.FindStringSubmatch(release); m != nil {
 			version := "6"
-			code_name := "()"
+			codeName := "()"
 			switch l := len(m); l {
 			case 3:
-				code_name = m[2]
+				codeName = m[2]
 				fallthrough
 			case 2:
 				version = m[1]
 			}
-			spewFile(osReleaseFile, fmt.Sprintf(redhat6Template, version, code_name, version, version), 0666)
+			spewFile(osReleaseFile, fmt.Sprintf(redhat6Template, version, codeName, version, version), 0666)
 			return
 		}
 	}

@@ -66,23 +66,23 @@ func getSupported(name string) uint32 {
 
 	// struct ethtool_cmd from /usr/include/linux/ethtool.h
 	var ethtool struct {
-		Cmd            uint32
-		Supported      uint32
-		Advertising    uint32
-		Speed          uint16
-		Duplex         uint8
-		Port           uint8
-		Phy_address    uint8
-		Transceiver    uint8
-		Autoneg        uint8
-		Mdio_support   uint8
-		Maxtxpkt       uint32
-		Maxrxpkt       uint32
-		Speed_hi       uint16
-		Eth_tp_mdix    uint8
-		Reserved2      uint8
-		Lp_advertising uint32
-		Reserved       [2]uint32
+		Cmd           uint32
+		Supported     uint32
+		Advertising   uint32
+		Speed         uint16
+		Duplex        uint8
+		Port          uint8
+		PhyAddress    uint8
+		Transceiver   uint8
+		Autoneg       uint8
+		MdioSupport   uint8
+		Maxtxpkt      uint32
+		Maxrxpkt      uint32
+		SpeedHi       uint16
+		EthTpMdix     uint8
+		Reserved2     uint8
+		LpAdvertising uint32
+		Reserved      [2]uint32
 	}
 
 	// ETHTOOL_GSET from /usr/include/linux/ethtool.h
