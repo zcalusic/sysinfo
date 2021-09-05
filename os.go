@@ -6,7 +6,6 @@ package sysinfo
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -21,69 +20,14 @@ type OS struct {
 	Architecture string `json:"architecture,omitempty"`
 }
 
-const (
-	osReleaseFile = "/etc/os-release"
-
-	centOS6Template = `NAME="CentOS Linux"
-VERSION="6 %s"
-ID="centos"
-ID_LIKE="rhel fedora"
-VERSION_ID="6"
-PRETTY_NAME="CentOS Linux 6 %s"
-ANSI_COLOR="0;31"
-CPE_NAME="cpe:/o:centos:centos:6"
-HOME_URL="https://www.centos.org/"
-BUG_REPORT_URL="https://bugs.centos.org/"`
-
-	redhat6Template = `NAME="Red Hat Enterprise Linux Server"
-VERSION="%s %s"
-ID="rhel"
-ID_LIKE="fedora"
-VERSION_ID="%s"
-PRETTY_NAME="Red Hat Enterprise Linux"
-ANSI_COLOR="0;31"
-CPE_NAME="cpe:/o:redhat:enterprise_linux:%s:GA:server"
-HOME_URL="https://www.redhat.com/"
-BUG_REPORT_URL="https://bugzilla.redhat.com/"`
-)
-
 var (
 	rePrettyName = regexp.MustCompile(`^PRETTY_NAME=(.*)$`)
 	reID         = regexp.MustCompile(`^ID=(.*)$`)
 	reVersionID  = regexp.MustCompile(`^VERSION_ID=(.*)$`)
 	reUbuntu     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+) `)
-	reCentOS6    = regexp.MustCompile(`^CentOS release 6\.\d+ (.*)`)
-	reRedhat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
-	reRedhat6    = regexp.MustCompile(`^Red Hat Enterprise Linux Server release (.*) (.*)`)
+	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
-
-func genOSRelease() {
-	// CentOS 6.x
-	if release := slurpFile("/etc/centos-release"); release != "" {
-		if m := reCentOS6.FindStringSubmatch(release); m != nil {
-			spewFile(osReleaseFile, fmt.Sprintf(centOS6Template, m[1], m[1]), 0666)
-			return
-		}
-	}
-
-	// RHEL 6.x
-	if release := slurpFile("/etc/redhat-release"); release != "" {
-		if m := reRedhat6.FindStringSubmatch(release); m != nil {
-			version := "6"
-			codeName := "()"
-			switch l := len(m); l {
-			case 3:
-				codeName = m[2]
-				fallthrough
-			case 2:
-				version = m[1]
-			}
-			spewFile(osReleaseFile, fmt.Sprintf(redhat6Template, version, codeName, version, version), 0666)
-			return
-		}
-	}
-}
 
 func (si *SysInfo) getOSInfo() {
 	// This seems to be the best and most portable way to detect OS architecture (NOT kernel!)
@@ -93,11 +37,7 @@ func (si *SysInfo) getOSInfo() {
 		si.OS.Architecture = "i386"
 	}
 
-	if _, err := os.Stat(osReleaseFile); os.IsNotExist(err) {
-		genOSRelease()
-	}
-
-	f, err := os.Open(osReleaseFile)
+	f, err := os.Open("/etc/os-release")
 	if err != nil {
 		return
 	}
@@ -129,12 +69,12 @@ func (si *SysInfo) getOSInfo() {
 		}
 	case "rhel":
 		if release := slurpFile("/etc/redhat-release"); release != "" {
-			if m := reRedhat.FindStringSubmatch(release); m != nil {
+			if m := reRedHat.FindStringSubmatch(release); m != nil {
 				si.OS.Release = m[1]
 			}
 		}
-		if len(si.OS.Release) == 0 {
-			if m := reRedhat.FindStringSubmatch(si.OS.Name); m != nil {
+		if si.OS.Release == "" {
+			if m := reRedHat.FindStringSubmatch(si.OS.Name); m != nil {
 				si.OS.Release = m[1]
 			}
 		}
