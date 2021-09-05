@@ -56,30 +56,21 @@ born.
 The purpose of the library is to collect only inventory info. No metrics like CPU usage or load average will be added.
 The rule of thumb is, if it's changing during the day, every day, it doesn't belong in the library.
 
-The library should work well on any Linux distribution. Here's just a small list of distributions on which the library
-has been successfully tested. If your favorite distro is not on the list, feel free to open an issue and report success.
-
-- [x] Fedora 28
-- [x] CentOS 6, 7
-- [x] Debian 7 - 11...
-- [x] Ubuntu 12.04 - 20.04...
-
-While older distributions can be a bit problematic, all newer should work out of the box thanks to modern kernels with
-more features and standardization efforts of the systemd team (think
-[/etc/os-release](http://0pointer.de/blog/projects/os-release) and stuff like that).
+The library should work well on any modern/supported Linux distribution. There are no plans to add support for older
+unsupported Linux distributions/kernels, to keep the code clean and robust and reduce the maintenance burden.
 
 ## Requirements
 
 Sysinfo requires:
 
-- Linux kernel 2.6.23 or later (actually, this is what Go's run-time [requires](https://golang.org/doc/install))
+- Linux kernel 4.2 or later
 - access to /sys & /proc Linux virtual file systems
 - access to various files in /etc, /var, /run FS hierarchy
-- access to DMI system data via /dev/mem virtual device (requires superuser privilege)
+- superuser privileges (to access SMBIOS/DMI table and detect RAM size and properties)
 
 Sysinfo doesn't require ANY other external utility on the target system, which is its primary strength, IMHO.
 
-It heavily depends on Linux internals, so there are no plans to support other operating systems.
+It depends on Linux internals heavily, so there are no plans to support other operating systems.
 
 ## Installation
 
