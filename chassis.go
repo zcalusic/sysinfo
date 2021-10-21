@@ -15,12 +15,12 @@ type Chassis struct {
 	AssetTag string `json:"assettag,omitempty"`
 }
 
-func (si *SysInfo) getChassisInfo() {
+func (c *Chassis) GetInfo() {
 	if chtype, err := strconv.ParseUint(slurpFile("/sys/class/dmi/id/chassis_type"), 10, 64); err == nil {
-		si.Chassis.Type = uint(chtype)
+		c.Type = uint(chtype)
 	}
-	si.Chassis.Vendor = slurpFile("/sys/class/dmi/id/chassis_vendor")
-	si.Chassis.Version = slurpFile("/sys/class/dmi/id/chassis_version")
-	si.Chassis.Serial = slurpFile("/sys/class/dmi/id/chassis_serial")
-	si.Chassis.AssetTag = slurpFile("/sys/class/dmi/id/chassis_asset_tag")
+	c.Vendor = slurpFile("/sys/class/dmi/id/chassis_vendor")
+	c.Version = slurpFile("/sys/class/dmi/id/chassis_version")
+	c.Serial = slurpFile("/sys/class/dmi/id/chassis_serial")
+	c.AssetTag = slurpFile("/sys/class/dmi/id/chassis_asset_tag")
 }

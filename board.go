@@ -13,10 +13,10 @@ type Board struct {
 	AssetTag string `json:"assettag,omitempty"`
 }
 
-func (si *SysInfo) getBoardInfo() {
-	si.Board.Name = slurpFile("/sys/class/dmi/id/board_name")
-	si.Board.Vendor = slurpFile("/sys/class/dmi/id/board_vendor")
-	si.Board.Version = slurpFile("/sys/class/dmi/id/board_version")
-	si.Board.Serial = slurpFile("/sys/class/dmi/id/board_serial")
-	si.Board.AssetTag = slurpFile("/sys/class/dmi/id/board_asset_tag")
+func (b *Board) GetInfo() {
+	b.Name = slurpFile("/sys/class/dmi/id/board_name")
+	b.Vendor = slurpFile("/sys/class/dmi/id/board_vendor")
+	b.Version = slurpFile("/sys/class/dmi/id/board_version")
+	b.Serial = slurpFile("/sys/class/dmi/id/board_serial")
+	b.AssetTag = slurpFile("/sys/class/dmi/id/board_asset_tag")
 }

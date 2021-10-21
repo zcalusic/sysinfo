@@ -13,6 +13,9 @@ import (
 	"unsafe"
 )
 
+// Network information.
+type Network []NetworkDevice
+
 // NetworkDevice information.
 type NetworkDevice struct {
 	Name       string `json:"name,omitempty"`
@@ -110,14 +113,13 @@ func getSupported(name string) uint32 {
 	return 0
 }
 
-func (si *SysInfo) getNetworkInfo() {
+func (n *Network) GetInfo() {
 	sysClassNet := "/sys/class/net"
 	devices, err := ioutil.ReadDir(sysClassNet)
 	if err != nil {
 		return
 	}
 
-	si.Network = make([]NetworkDevice, 0)
 	for _, link := range devices {
 		fullpath := path.Join(sysClassNet, link.Name())
 		dev, err := os.Readlink(fullpath)
@@ -142,6 +144,6 @@ func (si *SysInfo) getNetworkInfo() {
 			device.Driver = path.Base(driver)
 		}
 
-		si.Network = append(si.Network, device)
+		*n = append(*n, device)
 	}
 }
