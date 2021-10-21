@@ -17,14 +17,14 @@ type Kernel struct {
 	Architecture string `json:"architecture,omitempty"`
 }
 
-func (si *SysInfo) getKernelInfo() {
-	si.Kernel.Release = slurpFile("/proc/sys/kernel/osrelease")
-	si.Kernel.Version = slurpFile("/proc/sys/kernel/version")
+func (k *Kernel) GetInfo() {
+	k.Release = slurpFile("/proc/sys/kernel/osrelease")
+	k.Version = slurpFile("/proc/sys/kernel/version")
 
 	var uname syscall.Utsname
 	if err := syscall.Uname(&uname); err != nil {
 		return
 	}
 
-	si.Kernel.Architecture = strings.TrimRight(string((*[65]byte)(unsafe.Pointer(&uname.Machine))[:]), "\000")
+	k.Architecture = strings.TrimRight(string((*[65]byte)(unsafe.Pointer(&uname.Machine))[:]), "\000")
 }

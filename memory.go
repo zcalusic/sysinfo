@@ -30,19 +30,19 @@ func qword(data []byte, index int) uint64 {
 	return binary.LittleEndian.Uint64(data[index : index+8])
 }
 
-func (si *SysInfo) getMemoryInfo() {
+func (m *Memory) GetInfo(cpu *CPU) {
 	dmi, err := ioutil.ReadFile("/sys/firmware/dmi/tables/DMI")
 	if err != nil {
 		// Xen hypervisor
 		if targetKB := slurpFile("/sys/devices/system/xen_memory/xen_memory0/target_kb"); targetKB != "" {
-			si.Memory.Type = "DRAM"
+			m.Type = "DRAM"
 			size, _ := strconv.ParseUint(targetKB, 10, 64)
-			si.Memory.Size = uint(size) / 1024
+			m.Size = uint(size) / 1024
 		}
 		return
 	}
 
-	si.Memory.Size = 0
+	m.Size = 0
 	var memSizeAlt uint
 loop:
 	for p := 0; p < len(dmi)-1; {
@@ -51,8 +51,8 @@ loop:
 
 		switch recType {
 		case 4:
-			if si.CPU.Speed == 0 {
-				si.CPU.Speed = uint(word(dmi, p+0x16))
+			if cpu.Speed == 0 {
+				cpu.Speed = uint(word(dmi, p+0x16))
 			}
 		case 17:
 			size := uint(word(dmi, p+0x0c))
@@ -67,9 +67,9 @@ loop:
 				}
 			}
 
-			si.Memory.Size += size
+			m.Size += size
 
-			if si.Memory.Type == "" {
+			if m.Type == "" {
 				// SMBIOS Reference Specification Version 3.0.0, page 92
 				memTypes := [...]string{
 					"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
@@ -79,13 +79,13 @@ loop:
 				}
 
 				if index := int(dmi[p+0x12]); index >= 1 && index <= len(memTypes) {
-					si.Memory.Type = memTypes[index-1]
+					m.Type = memTypes[index-1]
 				}
 			}
 
-			if si.Memory.Speed == 0 && recLen >= 0x17 {
+			if m.Speed == 0 && recLen >= 0x17 {
 				if speed := uint(word(dmi, p+0x15)); speed != 0 {
-					si.Memory.Speed = speed
+					m.Speed = speed
 				}
 			}
 		case 19:
@@ -114,8 +114,8 @@ loop:
 	}
 
 	// Sometimes DMI type 17 has no information, so we fall back to DMI type 19, to at least get the RAM size.
-	if si.Memory.Size == 0 && memSizeAlt > 0 {
-		si.Memory.Type = "DRAM"
-		si.Memory.Size = memSizeAlt
+	if m.Size == 0 && memSizeAlt > 0 {
+		m.Type = "DRAM"
+		m.Size = memSizeAlt
 	}
 }

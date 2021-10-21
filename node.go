@@ -21,11 +21,11 @@ type Node struct {
 	Timezone   string `json:"timezone,omitempty"`
 }
 
-func (si *SysInfo) getHostname() {
-	si.Node.Hostname = slurpFile("/proc/sys/kernel/hostname")
+func (n *Node) getHostname() {
+	n.Hostname = slurpFile("/proc/sys/kernel/hostname")
 }
 
-func (si *SysInfo) getSetMachineID() {
+func (n *Node) getSetMachineID() {
 	const pathSystemdMachineID = "/etc/machine-id"
 	const pathDbusMachineID = "/var/lib/dbus/machine-id"
 
@@ -35,27 +35,27 @@ func (si *SysInfo) getSetMachineID() {
 	if systemdMachineID != "" && dbusMachineID != "" {
 		// All OK, just return the machine id.
 		if systemdMachineID == dbusMachineID {
-			si.Node.MachineID = systemdMachineID
+			n.MachineID = systemdMachineID
 			return
 		}
 
 		// They both exist, but they don't match! Copy systemd machine id to DBUS machine id.
 		spewFile(pathDbusMachineID, systemdMachineID, 0444)
-		si.Node.MachineID = systemdMachineID
+		n.MachineID = systemdMachineID
 		return
 	}
 
 	// Copy DBUS machine id to non-existent systemd machine id.
 	if systemdMachineID == "" && dbusMachineID != "" {
 		spewFile(pathSystemdMachineID, dbusMachineID, 0444)
-		si.Node.MachineID = dbusMachineID
+		n.MachineID = dbusMachineID
 		return
 	}
 
 	// Copy systemd machine id to non-existent DBUS machine id.
 	if systemdMachineID != "" && dbusMachineID == "" {
 		spewFile(pathDbusMachineID, systemdMachineID, 0444)
-		si.Node.MachineID = systemdMachineID
+		n.MachineID = systemdMachineID
 		return
 	}
 
@@ -70,15 +70,15 @@ func (si *SysInfo) getSetMachineID() {
 
 	spewFile(pathSystemdMachineID, newMachineID, 0444)
 	spewFile(pathDbusMachineID, newMachineID, 0444)
-	si.Node.MachineID = newMachineID
+	n.MachineID = newMachineID
 }
 
-func (si *SysInfo) getTimezone() {
+func (n *Node) getTimezone() {
 	if fi, err := os.Lstat("/etc/localtime"); err == nil {
 		if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
 			if tzfile, err := os.Readlink("/etc/localtime"); err == nil {
 				if strings.HasPrefix(tzfile, "/usr/share/zoneinfo/") {
-					si.Node.Timezone = strings.TrimPrefix(tzfile, "/usr/share/zoneinfo/")
+					n.Timezone = strings.TrimPrefix(tzfile, "/usr/share/zoneinfo/")
 					return
 				}
 			}
@@ -86,7 +86,7 @@ func (si *SysInfo) getTimezone() {
 	}
 
 	if timezone := slurpFile("/etc/timezone"); timezone != "" {
-		si.Node.Timezone = timezone
+		n.Timezone = timezone
 		return
 	}
 
@@ -96,7 +96,7 @@ func (si *SysInfo) getTimezone() {
 		for s.Scan() {
 			if sl := strings.Split(s.Text(), "="); len(sl) == 2 {
 				if sl[0] == "ZONE" {
-					si.Node.Timezone = strings.Trim(sl[1], `"`)
+					n.Timezone = strings.Trim(sl[1], `"`)
 					return
 				}
 			}
@@ -104,9 +104,9 @@ func (si *SysInfo) getTimezone() {
 	}
 }
 
-func (si *SysInfo) getNodeInfo() {
-	si.getHostname()
-	si.getSetMachineID()
-	si.getHypervisor()
-	si.getTimezone()
+func (n *Node) GetInfo(bios *BIOS) {
+	n.getHostname()
+	n.getSetMachineID()
+	n.getHypervisor(bios)
+	n.getTimezone()
 }

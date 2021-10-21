@@ -7,43 +7,43 @@ package sysinfo
 
 // SysInfo struct encapsulates all other information structs.
 type SysInfo struct {
-	Meta    Meta            `json:"sysinfo"`
-	Node    Node            `json:"node"`
-	OS      OS              `json:"os"`
-	Kernel  Kernel          `json:"kernel"`
-	Product Product         `json:"product"`
-	Board   Board           `json:"board"`
-	Chassis Chassis         `json:"chassis"`
-	BIOS    BIOS            `json:"bios"`
-	CPU     CPU             `json:"cpu"`
-	Memory  Memory          `json:"memory"`
-	Storage []StorageDevice `json:"storage,omitempty"`
-	Network []NetworkDevice `json:"network,omitempty"`
+	Meta    Meta    `json:"sysinfo"`
+	Node    Node    `json:"node"`
+	OS      OS      `json:"os"`
+	Kernel  Kernel  `json:"kernel"`
+	Product Product `json:"product"`
+	Board   Board   `json:"board"`
+	Chassis Chassis `json:"chassis"`
+	BIOS    BIOS    `json:"bios"`
+	CPU     CPU     `json:"cpu"`
+	Memory  Memory  `json:"memory"`
+	Storage Storage `json:"storage,omitempty"`
+	Network Network `json:"network,omitempty"`
 }
 
 // GetSysInfo gathers all available system information.
 func (si *SysInfo) GetSysInfo() {
 	// Meta info
-	si.getMetaInfo()
+	si.Meta.GetInfo()
 
 	// DMI info
-	si.getProductInfo()
-	si.getBoardInfo()
-	si.getChassisInfo()
-	si.getBIOSInfo()
+	si.Product.GetInfo()
+	si.Board.GetInfo()
+	si.Chassis.GetInfo()
+	si.BIOS.GetInfo()
 
 	// SMBIOS info
-	si.getMemoryInfo()
+	si.Memory.GetInfo(&si.CPU)
 
 	// Node info
-	si.getNodeInfo() // depends on BIOS info
+	si.Node.GetInfo(&si.BIOS)
 
 	// Hardware info
-	si.getCPUInfo() // depends on Node info
-	si.getStorageInfo()
-	si.getNetworkInfo()
+	si.CPU.GetInfo(si.Node.Hostname != "" && si.Node.Hypervisor == "")
+	si.Storage.GetInfo()
+	si.Network.GetInfo()
 
 	// Software info
-	si.getOSInfo()
-	si.getKernelInfo()
+	si.OS.GetInfo()
+	si.Kernel.GetInfo()
 }

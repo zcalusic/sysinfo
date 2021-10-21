@@ -13,6 +13,9 @@ import (
 	"strings"
 )
 
+// Storage information.
+type Storage []StorageDevice
+
 // StorageDevice information.
 type StorageDevice struct {
 	Name   string `json:"name,omitempty"`
@@ -58,14 +61,13 @@ scan:
 	return
 }
 
-func (si *SysInfo) getStorageInfo() {
+func (s *Storage) GetInfo() {
 	sysBlock := "/sys/block"
 	devices, err := ioutil.ReadDir(sysBlock)
 	if err != nil {
 		return
 	}
 
-	si.Storage = make([]StorageDevice, 0)
 	for _, link := range devices {
 		fullpath := path.Join(sysBlock, link.Name())
 		dev, err := os.Readlink(fullpath)
@@ -100,6 +102,6 @@ func (si *SysInfo) getStorageInfo() {
 		size, _ := strconv.ParseUint(slurpFile(path.Join(fullpath, "size")), 10, 64)
 		device.Size = uint(size) / 1953125 // GiB
 
-		si.Storage = append(si.Storage, device)
+		*s = append(*s, device)
 	}
 }

@@ -29,12 +29,12 @@ var (
 	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
 
-func (si *SysInfo) getOSInfo() {
+func (o *OS) GetInfo() {
 	// This seems to be the best and most portable way to detect OS architecture (NOT kernel!)
 	if _, err := os.Stat("/lib64/ld-linux-x86-64.so.2"); err == nil {
-		si.OS.Architecture = "amd64"
+		o.Architecture = "amd64"
 	} else if _, err := os.Stat("/lib/ld-linux.so.2"); err == nil {
-		si.OS.Architecture = "i386"
+		o.Architecture = "i386"
 	}
 
 	f, err := os.Open("/etc/os-release")
@@ -46,36 +46,36 @@ func (si *SysInfo) getOSInfo() {
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		if m := rePrettyName.FindStringSubmatch(s.Text()); m != nil {
-			si.OS.Name = strings.Trim(m[1], `"`)
+			o.Name = strings.Trim(m[1], `"`)
 		} else if m := reID.FindStringSubmatch(s.Text()); m != nil {
-			si.OS.Vendor = strings.Trim(m[1], `"`)
+			o.Vendor = strings.Trim(m[1], `"`)
 		} else if m := reVersionID.FindStringSubmatch(s.Text()); m != nil {
-			si.OS.Version = strings.Trim(m[1], `"`)
+			o.Version = strings.Trim(m[1], `"`)
 		}
 	}
 
-	switch si.OS.Vendor {
+	switch o.Vendor {
 	case "debian":
-		si.OS.Release = slurpFile("/etc/debian_version")
+		o.Release = slurpFile("/etc/debian_version")
 	case "ubuntu":
-		if m := reUbuntu.FindStringSubmatch(si.OS.Name); m != nil {
-			si.OS.Release = m[1]
+		if m := reUbuntu.FindStringSubmatch(o.Name); m != nil {
+			o.Release = m[1]
 		}
 	case "centos":
 		if release := slurpFile("/etc/centos-release"); release != "" {
 			if m := reCentOS.FindStringSubmatch(release); m != nil {
-				si.OS.Release = m[2]
+				o.Release = m[2]
 			}
 		}
 	case "rhel":
 		if release := slurpFile("/etc/redhat-release"); release != "" {
 			if m := reRedHat.FindStringSubmatch(release); m != nil {
-				si.OS.Release = m[1]
+				o.Release = m[1]
 			}
 		}
-		if si.OS.Release == "" {
-			if m := reRedHat.FindStringSubmatch(si.OS.Name); m != nil {
-				si.OS.Release = m[1]
+		if o.Release == "" {
+			if m := reRedHat.FindStringSubmatch(o.Name); m != nil {
+				o.Release = m[1]
 			}
 		}
 	}

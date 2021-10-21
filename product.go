@@ -12,9 +12,9 @@ type Product struct {
 	Serial  string `json:"serial,omitempty"`
 }
 
-func (si *SysInfo) getProductInfo() {
-	si.Product.Name = slurpFile("/sys/class/dmi/id/product_name")
-	si.Product.Vendor = slurpFile("/sys/class/dmi/id/sys_vendor")
-	si.Product.Version = slurpFile("/sys/class/dmi/id/product_version")
-	si.Product.Serial = slurpFile("/sys/class/dmi/id/product_serial")
+func (p *Product) GetInfo() {
+	p.Name = slurpFile("/sys/class/dmi/id/product_name")
+	p.Vendor = slurpFile("/sys/class/dmi/id/sys_vendor")
+	p.Version = slurpFile("/sys/class/dmi/id/product_version")
+	p.Serial = slurpFile("/sys/class/dmi/id/product_serial")
 }

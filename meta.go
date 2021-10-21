@@ -12,7 +12,7 @@ type Meta struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (si *SysInfo) getMetaInfo() {
-	si.Meta.Version = Version
-	si.Meta.Timestamp = time.Now()
+func (m *Meta) GetInfo() {
+	m.Version = Version
+	m.Timestamp = time.Now()
 }

@@ -11,8 +11,8 @@ type BIOS struct {
 	Date    string `json:"date,omitempty"`
 }
 
-func (si *SysInfo) getBIOSInfo() {
-	si.BIOS.Vendor = slurpFile("/sys/class/dmi/id/bios_vendor")
-	si.BIOS.Version = slurpFile("/sys/class/dmi/id/bios_version")
-	si.BIOS.Date = slurpFile("/sys/class/dmi/id/bios_date")
+func (b *BIOS) GetInfo() {
+	b.Vendor = slurpFile("/sys/class/dmi/id/bios_vendor")
+	b.Version = slurpFile("/sys/class/dmi/id/bios_version")
+	b.Date = slurpFile("/sys/class/dmi/id/bios_date")
 }

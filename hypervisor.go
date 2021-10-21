@@ -33,11 +33,11 @@ func getHypervisorCpuid(ax uint32) string {
 	return hvmap[strings.TrimRight(string((*[12]byte)(unsafe.Pointer(&info[1]))[:]), "\000")]
 }
 
-func (si *SysInfo) getHypervisor() {
+func (n *Node) getHypervisor(bios *BIOS) {
 	if !isHypervisorActive() {
 		if hypervisorType := slurpFile("/sys/hypervisor/type"); hypervisorType != "" {
 			if hypervisorType == "xen" {
-				si.Node.Hypervisor = "xenpv"
+				n.Hypervisor = "xenpv"
 			}
 		}
 		return
@@ -46,20 +46,20 @@ func (si *SysInfo) getHypervisor() {
 	// KVM has been caught to move its real signature to this leaf, and put something completely different in the
 	// standard location. So this leaf must be checked first.
 	if hv := getHypervisorCpuid(0x40000100); hv != "" {
-		si.Node.Hypervisor = hv
+		n.Hypervisor = hv
 		return
 	}
 
 	if hv := getHypervisorCpuid(0x40000000); hv != "" {
-		si.Node.Hypervisor = hv
+		n.Hypervisor = hv
 		return
 	}
 
 	// getBIOSInfo() must have run first, to detect BIOS vendor
-	if si.BIOS.Vendor == "Bochs" {
-		si.Node.Hypervisor = "bochs"
+	if bios.Vendor == "Bochs" {
+		n.Hypervisor = "bochs"
 		return
 	}
 
-	si.Node.Hypervisor = "unknown"
+	n.Hypervisor = "unknown"
 }
