@@ -74,11 +74,14 @@ func (si *SysInfo) getSetMachineID() {
 }
 
 func (si *SysInfo) getTimezone() {
+	const zoneInfoPrefix = "/usr/share/zoneinfo/"
+
 	if fi, err := os.Lstat("/etc/localtime"); err == nil {
 		if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
 			if tzfile, err := os.Readlink("/etc/localtime"); err == nil {
-				if strings.HasPrefix(tzfile, "/usr/share/zoneinfo/") {
-					si.Node.Timezone = strings.TrimPrefix(tzfile, "/usr/share/zoneinfo/")
+				tzfile = strings.TrimPrefix(tzfile, "..")
+				if strings.HasPrefix(tzfile, zoneInfoPrefix) {
+					si.Node.Timezone = strings.TrimPrefix(tzfile, zoneInfoPrefix)
 					return
 				}
 			}
