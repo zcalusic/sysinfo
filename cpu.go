@@ -31,12 +31,13 @@ var (
 	reCacheSize  = regexp.MustCompile(`^(\d+) KB$`)
 )
 
-func (si *SysInfo) getCPUInfo() {
-	si.CPU.Threads = uint(runtime.NumCPU())
+func GetCPUInfo(virtualEnv bool) CPU {
+	cpuInfo := CPU{}
+	cpuInfo.Threads = uint(runtime.NumCPU())
 
 	f, err := os.Open("/proc/cpuinfo")
 	if err != nil {
-		return
+		return cpuInfo
 	}
 	defer f.Close()
 
@@ -56,20 +57,20 @@ func (si *SysInfo) getCPUInfo() {
 				coreID := fmt.Sprintf("%s/%s", cpuID, sl[1])
 				core[coreID] = true
 			case "vendor_id":
-				if si.CPU.Vendor == "" {
-					si.CPU.Vendor = sl[1]
+				if cpuInfo.Vendor == "" {
+					cpuInfo.Vendor = sl[1]
 				}
 			case "model name":
-				if si.CPU.Model == "" {
+				if cpuInfo.Model == "" {
 					// CPU model, as reported by /proc/cpuinfo, can be a bit ugly. Clean up...
 					model := reExtraSpace.ReplaceAllLiteralString(sl[1], " ")
-					si.CPU.Model = strings.Replace(model, "- ", "-", 1)
+					cpuInfo.Model = strings.Replace(model, "- ", "-", 1)
 				}
 			case "cache size":
-				if si.CPU.Cache == 0 {
+				if cpuInfo.Cache == 0 {
 					if m := reCacheSize.FindStringSubmatch(sl[1]); m != nil {
 						if cache, err := strconv.ParseUint(m[1], 10, 64); err == nil {
-							si.CPU.Cache = uint(cache)
+							cpuInfo.Cache = uint(cache)
 						}
 					}
 				}
@@ -77,15 +78,12 @@ func (si *SysInfo) getCPUInfo() {
 		}
 	}
 	if s.Err() != nil {
-		return
+		return cpuInfo
 	}
 
-	// getNodeInfo() must have run first, to detect if we're dealing with a virtualized CPU! Detecting number of
-	// physical processors and/or cores is totally unreliable in virtualized environments, so let's not do it.
-	if si.Node.Hostname == "" || si.Node.Hypervisor != "" {
-		return
+	if !virtualEnv {
+		cpuInfo.Cpus = uint(len(cpu))
+		cpuInfo.Cores = uint(len(core))
 	}
-
-	si.CPU.Cpus = uint(len(cpu))
-	si.CPU.Cores = uint(len(core))
+	return cpuInfo
 }

@@ -29,54 +29,56 @@ var (
 	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
 
-func (si *SysInfo) getOSInfo() {
+func GetOSInfo() OS {
+	osInfo := OS{}
 	// This seems to be the best and most portable way to detect OS architecture (NOT kernel!)
 	if _, err := os.Stat("/lib64/ld-linux-x86-64.so.2"); err == nil {
-		si.OS.Architecture = "amd64"
+		osInfo.Architecture = "amd64"
 	} else if _, err := os.Stat("/lib/ld-linux.so.2"); err == nil {
-		si.OS.Architecture = "i386"
+		osInfo.Architecture = "i386"
 	}
 
 	f, err := os.Open("/etc/os-release")
 	if err != nil {
-		return
+		return osInfo
 	}
 	defer f.Close()
 
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		if m := rePrettyName.FindStringSubmatch(s.Text()); m != nil {
-			si.OS.Name = strings.Trim(m[1], `"`)
+			osInfo.Name = strings.Trim(m[1], `"`)
 		} else if m := reID.FindStringSubmatch(s.Text()); m != nil {
-			si.OS.Vendor = strings.Trim(m[1], `"`)
+			osInfo.Vendor = strings.Trim(m[1], `"`)
 		} else if m := reVersionID.FindStringSubmatch(s.Text()); m != nil {
-			si.OS.Version = strings.Trim(m[1], `"`)
+			osInfo.Version = strings.Trim(m[1], `"`)
 		}
 	}
 
-	switch si.OS.Vendor {
+	switch osInfo.Vendor {
 	case "debian":
-		si.OS.Release = slurpFile("/etc/debian_version")
+		osInfo.Release = slurpFile("/etc/debian_version")
 	case "ubuntu":
-		if m := reUbuntu.FindStringSubmatch(si.OS.Name); m != nil {
-			si.OS.Release = m[1]
+		if m := reUbuntu.FindStringSubmatch(osInfo.Name); m != nil {
+			osInfo.Release = m[1]
 		}
 	case "centos":
 		if release := slurpFile("/etc/centos-release"); release != "" {
 			if m := reCentOS.FindStringSubmatch(release); m != nil {
-				si.OS.Release = m[2]
+				osInfo.Release = m[2]
 			}
 		}
 	case "rhel":
 		if release := slurpFile("/etc/redhat-release"); release != "" {
 			if m := reRedHat.FindStringSubmatch(release); m != nil {
-				si.OS.Release = m[1]
+				osInfo.Release = m[1]
 			}
 		}
-		if si.OS.Release == "" {
-			if m := reRedHat.FindStringSubmatch(si.OS.Name); m != nil {
-				si.OS.Release = m[1]
+		if osInfo.Release == "" {
+			if m := reRedHat.FindStringSubmatch(osInfo.Name); m != nil {
+				osInfo.Release = m[1]
 			}
 		}
 	}
+	return osInfo
 }

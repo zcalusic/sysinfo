@@ -35,9 +35,7 @@ func main() {
 		log.Fatal("requires superuser privilege")
 	}
 
-	var si sysinfo.SysInfo
-
-	si.GetSysInfo()
+	si := sysinfo.GetSysInfo()
 
 	data, err := json.MarshalIndent(&si, "", "  ")
 	if err != nil {

@@ -30,20 +30,27 @@ func qword(data []byte, index int) uint64 {
 	return binary.LittleEndian.Uint64(data[index : index+8])
 }
 
-func (si *SysInfo) getMemoryInfo() {
+func GetMemoryInfo() Memory {
+	memory, _ := GetMemoryInfoAndCPUSpeed()
+	return memory
+}
+
+func GetMemoryInfoAndCPUSpeed() (Memory, uint) {
+	memory := Memory{}
 	dmi, err := ioutil.ReadFile("/sys/firmware/dmi/tables/DMI")
 	if err != nil {
 		// Xen hypervisor
 		if targetKB := slurpFile("/sys/devices/system/xen_memory/xen_memory0/target_kb"); targetKB != "" {
-			si.Memory.Type = "DRAM"
+			memory.Type = "DRAM"
 			size, _ := strconv.ParseUint(targetKB, 10, 64)
-			si.Memory.Size = uint(size) / 1024
+			memory.Size = uint(size) / 1024
 		}
-		return
+		return memory, 0
 	}
 
-	si.Memory.Size = 0
+	memory.Size = 0
 	var memSizeAlt uint
+	var cpuSpeed uint
 loop:
 	for p := 0; p < len(dmi)-1; {
 		recType := dmi[p]
@@ -51,9 +58,7 @@ loop:
 
 		switch recType {
 		case 4:
-			if si.CPU.Speed == 0 {
-				si.CPU.Speed = uint(word(dmi, p+0x16))
-			}
+			cpuSpeed = uint(word(dmi, p+0x16))
 		case 17:
 			size := uint(word(dmi, p+0x0c))
 			if size == 0 || size == 0xffff || size&0x8000 == 0x8000 {
@@ -67,9 +72,9 @@ loop:
 				}
 			}
 
-			si.Memory.Size += size
+			memory.Size += size
 
-			if si.Memory.Type == "" {
+			if memory.Type == "" {
 				// SMBIOS Reference Specification Version 3.0.0, page 92
 				memTypes := [...]string{
 					"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
@@ -79,13 +84,13 @@ loop:
 				}
 
 				if index := int(dmi[p+0x12]); index >= 1 && index <= len(memTypes) {
-					si.Memory.Type = memTypes[index-1]
+					memory.Type = memTypes[index-1]
 				}
 			}
 
-			if si.Memory.Speed == 0 && recLen >= 0x17 {
+			if memory.Speed == 0 && recLen >= 0x17 {
 				if speed := uint(word(dmi, p+0x15)); speed != 0 {
-					si.Memory.Speed = speed
+					memory.Speed = speed
 				}
 			}
 		case 19:
@@ -114,8 +119,9 @@ loop:
 	}
 
 	// Sometimes DMI type 17 has no information, so we fall back to DMI type 19, to at least get the RAM size.
-	if si.Memory.Size == 0 && memSizeAlt > 0 {
-		si.Memory.Type = "DRAM"
-		si.Memory.Size = memSizeAlt
+	if memory.Size == 0 && memSizeAlt > 0 {
+		memory.Type = "DRAM"
+		memory.Size = memSizeAlt
 	}
+	return memory, cpuSpeed
 }

@@ -21,11 +21,11 @@ type Node struct {
 	Timezone   string `json:"timezone,omitempty"`
 }
 
-func (si *SysInfo) getHostname() {
-	si.Node.Hostname = slurpFile("/proc/sys/kernel/hostname")
+func GetHostname() string {
+	return slurpFile("/proc/sys/kernel/hostname")
 }
 
-func (si *SysInfo) getSetMachineID() {
+func GetSetMachineID() string {
 	const pathSystemdMachineID = "/etc/machine-id"
 	const pathDbusMachineID = "/var/lib/dbus/machine-id"
 
@@ -35,28 +35,24 @@ func (si *SysInfo) getSetMachineID() {
 	if systemdMachineID != "" && dbusMachineID != "" {
 		// All OK, just return the machine id.
 		if systemdMachineID == dbusMachineID {
-			si.Node.MachineID = systemdMachineID
-			return
+			return systemdMachineID
 		}
 
 		// They both exist, but they don't match! Copy systemd machine id to DBUS machine id.
 		spewFile(pathDbusMachineID, systemdMachineID, 0444)
-		si.Node.MachineID = systemdMachineID
-		return
+		return systemdMachineID
 	}
 
 	// Copy DBUS machine id to non-existent systemd machine id.
 	if systemdMachineID == "" && dbusMachineID != "" {
 		spewFile(pathSystemdMachineID, dbusMachineID, 0444)
-		si.Node.MachineID = dbusMachineID
-		return
+		return dbusMachineID
 	}
 
 	// Copy systemd machine id to non-existent DBUS machine id.
 	if systemdMachineID != "" && dbusMachineID == "" {
 		spewFile(pathDbusMachineID, systemdMachineID, 0444)
-		si.Node.MachineID = systemdMachineID
-		return
+		return systemdMachineID
 	}
 
 	// Generate and write fresh new machine ID to both locations, conforming to the DBUS specification:
@@ -64,16 +60,16 @@ func (si *SysInfo) getSetMachineID() {
 
 	random := make([]byte, 12)
 	if _, err := rand.Read(random); err != nil {
-		return
+		return ""
 	}
 	newMachineID := fmt.Sprintf("%x%x", random, time.Now().Unix())
 
 	spewFile(pathSystemdMachineID, newMachineID, 0444)
 	spewFile(pathDbusMachineID, newMachineID, 0444)
-	si.Node.MachineID = newMachineID
+	return newMachineID
 }
 
-func (si *SysInfo) getTimezone() {
+func GetTimezone() string {
 	const zoneInfoPrefix = "/usr/share/zoneinfo/"
 
 	if fi, err := os.Lstat("/etc/localtime"); err == nil {
@@ -81,16 +77,14 @@ func (si *SysInfo) getTimezone() {
 			if tzfile, err := os.Readlink("/etc/localtime"); err == nil {
 				tzfile = strings.TrimPrefix(tzfile, "..")
 				if strings.HasPrefix(tzfile, zoneInfoPrefix) {
-					si.Node.Timezone = strings.TrimPrefix(tzfile, zoneInfoPrefix)
-					return
+					return strings.TrimPrefix(tzfile, zoneInfoPrefix)
 				}
 			}
 		}
 	}
 
 	if timezone := slurpFile("/etc/timezone"); timezone != "" {
-		si.Node.Timezone = timezone
-		return
+		return timezone
 	}
 
 	if f, err := os.Open("/etc/sysconfig/clock"); err == nil {
@@ -99,17 +93,19 @@ func (si *SysInfo) getTimezone() {
 		for s.Scan() {
 			if sl := strings.Split(s.Text(), "="); len(sl) == 2 {
 				if sl[0] == "ZONE" {
-					si.Node.Timezone = strings.Trim(sl[1], `"`)
-					return
+					return strings.Trim(sl[1], `"`)
 				}
 			}
 		}
 	}
+	return ""
 }
 
-func (si *SysInfo) getNodeInfo() {
-	si.getHostname()
-	si.getSetMachineID()
-	si.getHypervisor()
-	si.getTimezone()
+func GetNodeInfo(biosVendor ...string) Node {
+	return Node{
+		Hostname:   GetHostname(),
+		MachineID:  GetSetMachineID(),
+		Hypervisor: GetHypervisor(biosVendor...),
+		Timezone:   GetTimezone(),
+	}
 }

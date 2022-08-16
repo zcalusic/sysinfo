@@ -110,14 +110,14 @@ func getSupported(name string) uint32 {
 	return 0
 }
 
-func (si *SysInfo) getNetworkInfo() {
+func GetNetworkInfo() []NetworkDevice {
 	sysClassNet := "/sys/class/net"
 	devices, err := ioutil.ReadDir(sysClassNet)
 	if err != nil {
-		return
+		return nil
 	}
 
-	si.Network = make([]NetworkDevice, 0)
+	networkDevices := make([]NetworkDevice, 0)
 	for _, link := range devices {
 		fullpath := path.Join(sysClassNet, link.Name())
 		dev, err := os.Readlink(fullpath)
@@ -142,6 +142,7 @@ func (si *SysInfo) getNetworkInfo() {
 			device.Driver = path.Base(driver)
 		}
 
-		si.Network = append(si.Network, device)
+		networkDevices = append(networkDevices, device)
 	}
+	return networkDevices
 }
