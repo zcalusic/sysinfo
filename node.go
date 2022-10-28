@@ -40,21 +40,21 @@ func (si *SysInfo) getSetMachineID() {
 		}
 
 		// They both exist, but they don't match! Copy systemd machine id to DBUS machine id.
-		spewFile(pathDbusMachineID, systemdMachineID, 0444)
+		spewFile(pathDbusMachineID, systemdMachineID, 0o444)
 		si.Node.MachineID = systemdMachineID
 		return
 	}
 
 	// Copy DBUS machine id to non-existent systemd machine id.
 	if systemdMachineID == "" && dbusMachineID != "" {
-		spewFile(pathSystemdMachineID, dbusMachineID, 0444)
+		spewFile(pathSystemdMachineID, dbusMachineID, 0o444)
 		si.Node.MachineID = dbusMachineID
 		return
 	}
 
 	// Copy systemd machine id to non-existent DBUS machine id.
 	if systemdMachineID != "" && dbusMachineID == "" {
-		spewFile(pathDbusMachineID, systemdMachineID, 0444)
+		spewFile(pathDbusMachineID, systemdMachineID, 0o444)
 		si.Node.MachineID = systemdMachineID
 		return
 	}
@@ -68,8 +68,8 @@ func (si *SysInfo) getSetMachineID() {
 	}
 	newMachineID := fmt.Sprintf("%x%x", random, time.Now().Unix())
 
-	spewFile(pathSystemdMachineID, newMachineID, 0444)
-	spewFile(pathDbusMachineID, newMachineID, 0444)
+	spewFile(pathSystemdMachineID, newMachineID, 0o444)
+	spewFile(pathDbusMachineID, newMachineID, 0o444)
 	si.Node.MachineID = newMachineID
 }
 

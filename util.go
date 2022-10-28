@@ -21,6 +21,6 @@ func slurpFile(path string) string {
 }
 
 // Write one-liner text files, add newline, ignore errors (best effort).
-func spewFile(path string, data string, perm os.FileMode) {
+func spewFile(path, data string, perm os.FileMode) {
 	_ = ioutil.WriteFile(path, []byte(data+"\n"), perm)
 }
