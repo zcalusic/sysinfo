@@ -25,7 +25,7 @@ var (
 	reID         = regexp.MustCompile(`^ID=(.*)$`)
 	reVersionID  = regexp.MustCompile(`^VERSION_ID=(.*)$`)
 	reUbuntu     = regexp.MustCompile(`[\( ]([\d\.]+)`)
-	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+) `)
+	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+)`)
 	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
 
