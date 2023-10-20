@@ -38,6 +38,13 @@ func (si *SysInfo) getMemoryInfo() {
 			si.Memory.Type = "DRAM"
 			size, _ := strconv.ParseUint(targetKB, 10, 64)
 			si.Memory.Size = uint(size) / 1024
+		} else if meminfo := slurpFile("/proc/meminfo"); meminfo != "" && strings.HasPrefix(meminfo, "MemTotal:") {
+			si.Memory.Type = "DRAM"
+			lines := strings.Split(meminfo, "\n")
+			memTotalLine := lines[0]
+			parts := strings.Split(strings.TrimSpace(memTotalLine[9:]), " ")
+			size, _ := strconv.ParseUint(parts[0], 10, 64)
+			si.Memory.Size = uint(size) / 1024
 		}
 		return
 	}
