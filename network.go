@@ -5,7 +5,6 @@
 package sysinfo
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -112,7 +111,7 @@ func getSupported(name string) uint32 {
 
 func (si *SysInfo) getNetworkInfo() {
 	sysClassNet := "/sys/class/net"
-	devices, err := ioutil.ReadDir(sysClassNet)
+	devices, err := os.ReadDir(sysClassNet)
 	if err != nil {
 		return
 	}
