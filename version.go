@@ -5,4 +5,4 @@
 package sysinfo
 
 // Version of the sysinfo library.
-const Version = "1.0.3"
+const Version = "1.1.0"
