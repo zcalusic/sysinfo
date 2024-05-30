@@ -80,12 +80,6 @@ func (si *SysInfo) getCPUInfo() {
 		return
 	}
 
-	// getNodeInfo() must have run first, to detect if we're dealing with a virtualized CPU! Detecting number of
-	// physical processors and/or cores is totally unreliable in virtualized environments, so let's not do it.
-	if si.Node.Hostname == "" || si.Node.Hypervisor != "" {
-		return
-	}
-
 	si.CPU.Cpus = uint(len(cpu))
 	si.CPU.Cores = uint(len(core))
 }
