@@ -26,6 +26,7 @@ var (
 	reVersionID  = regexp.MustCompile(`^VERSION_ID=(.*)$`)
 	reUbuntu     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+)`)
+	reRockyLinux = regexp.MustCompile(`^Rocky Linux release ([\d\.]+)`)
 	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
 
@@ -67,6 +68,15 @@ func (si *SysInfo) getOSInfo() {
 				si.OS.Release = m[2]
 			}
 		}
+	case "rocky":
+		if release := slurpFile("/etc/rocky-release"); release != "" {
+			if m := reRockyLinux.FindStringSubmatch(release); m != nil {
+				si.OS.Release = m[1]
+			}
+		}
+
+		si.OS.Version = strings.Split(si.OS.Release, ".")[0]
+
 	case "rhel":
 		if release := slurpFile("/etc/redhat-release"); release != "" {
 			if m := reRedHat.FindStringSubmatch(release); m != nil {
