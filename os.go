@@ -25,6 +25,7 @@ var (
 	reID         = regexp.MustCompile(`^ID=(.*)$`)
 	reVersionID  = regexp.MustCompile(`^VERSION_ID=(.*)$`)
 	reUbuntu     = regexp.MustCompile(`[\( ]([\d\.]+)`)
+	reAlma       = regexp.MustCompile(`^AlmaLinux release ([\d\.]+)`)
 	reCentOS     = regexp.MustCompile(`^CentOS( Linux)? release ([\d\.]+)`)
 	reRocky      = regexp.MustCompile(`^Rocky Linux release ([\d\.]+)`)
 	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
@@ -62,6 +63,14 @@ func (si *SysInfo) getOSInfo() {
 		if m := reUbuntu.FindStringSubmatch(si.OS.Name); m != nil {
 			si.OS.Release = m[1]
 		}
+	case "almalinux":
+		if release := slurpFile("/etc/almalinux-release"); release != "" {
+			if m := reAlma.FindStringSubmatch(release); m != nil {
+				si.OS.Release = m[1]
+			}
+		}
+
+		si.OS.Version = strings.Split(si.OS.Release, ".")[0]
 	case "centos":
 		if release := slurpFile("/etc/centos-release"); release != "" {
 			if m := reCentOS.FindStringSubmatch(release); m != nil {
