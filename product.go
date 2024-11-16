@@ -27,4 +27,18 @@ func (si *SysInfo) getProductInfo() {
 	if err == nil {
 		si.Product.UUID = uid
 	}
+
+	// try a fallback to device-tree (ex: dmi is not available on ARM devices)
+	// full details: https://www.devicetree.org/specifications/
+
+	// on linux root path is /proc/device-tree (see: https://github.com/torvalds/linux/blob/v5.9/Documentation/ABI/testing/sysfs-firmware-ofw)
+	if si.Product.Name == "" {
+		si.Product.Name = slurpFile("/proc/device-tree/model")
+	}
+
+	if si.Product.Serial == "" {
+		si.Product.Serial = slurpFile("/proc/device-tree/serial-number")
+	}
+
+
 }
