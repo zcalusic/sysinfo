@@ -1,5 +1,6 @@
 # Sysinfo
 
+[![Build Status](https://github.com/zcalusic/sysinfo/actions/workflows/go.yml/badge.svg)](https://github.com/zcalusic/sysinfo/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/zcalusic/sysinfo)](https://goreportcard.com/report/github.com/zcalusic/sysinfo)
 [![GoDoc](https://godoc.org/github.com/zcalusic/sysinfo?status.svg)](https://godoc.org/github.com/zcalusic/sysinfo)
 [![License](https://img.shields.io/badge/license-MIT-a31f34.svg?maxAge=2592000)](https://github.com/zcalusic/sysinfo/blob/master/LICENSE)
