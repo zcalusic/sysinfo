@@ -39,6 +39,4 @@ func (si *SysInfo) getProductInfo() {
 	if si.Product.Serial == "" {
 		si.Product.Serial = slurpFile("/proc/device-tree/serial-number")
 	}
-
-
 }
