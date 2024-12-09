@@ -70,12 +70,13 @@ loop:
 			si.Memory.Size += size
 
 			if si.Memory.Type == "" {
-				// SMBIOS Reference Specification Version 3.0.0, page 92
+				// SMBIOS Reference Specification Version 3.8.0, page 103
 				memTypes := [...]string{
 					"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
 					"EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM", "SGRAM", "RDRAM",
 					"DDR", "DDR2", "DDR2 FB-DIMM", "Reserved", "Reserved", "Reserved", "DDR3",
-					"FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4",
+					"FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4", "Logical non-volatile device",
+					"HBM", "HBM2", "DDR5", "LPDDR5", "HBM3",
 				}
 
 				if index := int(dmi[p+0x12]); index >= 1 && index <= len(memTypes) {
