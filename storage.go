@@ -20,6 +20,7 @@ type StorageDevice struct {
 	Model  string `json:"model,omitempty"`
 	Serial string `json:"serial,omitempty"`
 	Size   uint   `json:"size,omitempty"` // device size in GB
+	Removable bool `json:"removable,omitempty"`
 }
 
 func getSerial(name, fullpath string) (serial string) {
@@ -98,6 +99,9 @@ func (si *SysInfo) getStorageInfo() {
 
 		size, _ := strconv.ParseUint(slurpFile(path.Join(fullpath, "size")), 10, 64)
 		device.Size = uint(size) / 1953125 // GiB
+
+		removable, _ := strconv.ParseBool(slurpFile(path.Join(fullpath, "removable")))
+		device.Removable = removable
 
 		si.Storage = append(si.Storage, device)
 	}
