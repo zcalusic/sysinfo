@@ -20,7 +20,7 @@ type StorageDevice struct {
 	Model  string `json:"model,omitempty"`
 	Serial string `json:"serial,omitempty"`
 	Size   uint   `json:"size,omitempty"` // device size in GB
-	Removable bool `json:"removable,omitempty"`
+	Removable bool `json:"removable"`
 }
 
 func getSerial(name, fullpath string) (serial string) {
