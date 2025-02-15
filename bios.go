@@ -9,10 +9,12 @@ type BIOS struct {
 	Vendor  string `json:"vendor,omitempty"`
 	Version string `json:"version,omitempty"`
 	Date    string `json:"date,omitempty"`
+	Release string `json:"release,omitempty"`
 }
 
 func (si *SysInfo) getBIOSInfo() {
 	si.BIOS.Vendor = slurpFile("/sys/class/dmi/id/bios_vendor")
 	si.BIOS.Version = slurpFile("/sys/class/dmi/id/bios_version")
 	si.BIOS.Date = slurpFile("/sys/class/dmi/id/bios_date")
+	si.BIOS.Release = slurpFile("/sys/class/dmi/id/bios_release")
 }

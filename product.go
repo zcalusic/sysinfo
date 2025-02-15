@@ -10,6 +10,7 @@ import "github.com/google/uuid"
 type Product struct {
 	Name    string    `json:"name,omitempty"`
 	Vendor  string    `json:"vendor,omitempty"`
+	Family  string    `json:"family,omitempty"`
 	Version string    `json:"version,omitempty"`
 	Serial  string    `json:"serial,omitempty"`
 	UUID    uuid.UUID `json:"uuid,omitempty"`
@@ -19,6 +20,7 @@ type Product struct {
 func (si *SysInfo) getProductInfo() {
 	si.Product.Name = slurpFile("/sys/class/dmi/id/product_name")
 	si.Product.Vendor = slurpFile("/sys/class/dmi/id/sys_vendor")
+	si.Product.Family = slurpFile("/sys/class/dmi/id/product_family")
 	si.Product.Version = slurpFile("/sys/class/dmi/id/product_version")
 	si.Product.Serial = slurpFile("/sys/class/dmi/id/product_serial")
 	si.Product.SKU = slurpFile("/sys/class/dmi/id/product_sku")
