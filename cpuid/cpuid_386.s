@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build !gccgo
+//go:build !gccgo && !tinygo
 
 TEXT ·CPUID(SB),$0-8
 	MOVL ax+4(FP), AX
