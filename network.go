@@ -89,10 +89,12 @@ func getSupported(name string) uint32 {
 
 	ethtool.Cmd = GSET
 
-	// struct ifreq from /usr/include/linux/if.h
+	// struct ifreq from /usr/include/linux/if.h, padded to its full size (the union is as big as struct ifmap),
+	// because the kernel copies the whole struct back
 	var ifr struct {
 		Name [16]byte
 		Data uintptr
+		_    [unsafe.Sizeof(uintptr(0)) + 8]byte
 	}
 
 	copy(ifr.Name[:], name+"\000")
