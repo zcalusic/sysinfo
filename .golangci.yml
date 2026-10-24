@@ -1,0 +1,41 @@
+version: "2"
+
+linters:
+  enable:
+    - bodyclose
+    - durationcheck
+    - errname
+    - errorlint
+    - gocritic
+    - gosec
+    - misspell
+    - modernize
+    - nilerr
+    - nolintlint
+    - perfsprint
+    - predeclared
+    - revive
+    - thelper
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+  settings:
+    gosec:
+      excludes:
+        # Reading files under /sys, /proc, /etc and the udev database is the job.
+        - G304
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    perfsprint:
+      concat-loop: false
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - goimports
