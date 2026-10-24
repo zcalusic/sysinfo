@@ -6,6 +6,7 @@ package sysinfo
 
 import (
 	"bufio"
+	"cmp"
 	"os"
 	"regexp"
 	"strings"
@@ -70,7 +71,7 @@ func (si *SysInfo) getOSInfo() {
 			}
 		}
 
-		si.OS.Version = strings.Split(si.OS.Release, ".")[0]
+		si.OS.Version = strings.Split(cmp.Or(si.OS.Release, si.OS.Version), ".")[0]
 	case "centos":
 		if release := slurpFile("/etc/centos-release"); release != "" {
 			if m := reCentOS.FindStringSubmatch(release); m != nil {
@@ -84,7 +85,7 @@ func (si *SysInfo) getOSInfo() {
 			}
 		}
 
-		si.OS.Version = strings.Split(si.OS.Release, ".")[0]
+		si.OS.Version = strings.Split(cmp.Or(si.OS.Release, si.OS.Version), ".")[0]
 
 	case "rhel":
 		if release := slurpFile("/etc/redhat-release"); release != "" {
