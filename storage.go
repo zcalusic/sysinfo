@@ -98,7 +98,7 @@ func (si *SysInfo) getStorageInfo() {
 		}
 
 		size, _ := strconv.ParseUint(slurpFile(path.Join(fullpath, "size")), 10, 64)
-		device.Size = uint(size) / 1953125 // GiB
+		device.Size = uint(size / 1953125) // GB
 
 		removable, _ := strconv.ParseBool(slurpFile(path.Join(fullpath, "removable")))
 		device.Removable = removable
