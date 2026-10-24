@@ -42,6 +42,11 @@ func (si *SysInfo) getMemoryInfo() {
 		return
 	}
 
+	si.parseDMI(dmi)
+}
+
+// parseDMI fills in memory information and CPU speed from a raw SMBIOS table.
+func (si *SysInfo) parseDMI(dmi []byte) {
 	si.Memory.Size = 0
 	var memSizeAlt uint
 loop:
