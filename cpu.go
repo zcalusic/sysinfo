@@ -7,9 +7,11 @@ package sysinfo
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -31,6 +33,71 @@ var (
 	reCacheSize  = regexp.MustCompile(`^(\d+) KB$`)
 )
 
+// ARM vendors and cores named by the "CPU implementer" and "CPU part" lines,
+// from util-linux sys-utils/lscpu-arm.c.
+var (
+	armImplementers = map[string]string{
+		"0x41": "ARM",
+		"0x42": "Broadcom",
+		"0x43": "Cavium",
+		"0x48": "HiSilicon",
+		"0x4e": "NVIDIA",
+		"0x51": "Qualcomm",
+		"0x53": "Samsung",
+		"0x61": "Apple",
+		"0xc0": "Ampere",
+	}
+	armParts = map[string]string{
+		"0xc05": "Cortex-A5",
+		"0xc07": "Cortex-A7",
+		"0xc08": "Cortex-A8",
+		"0xc09": "Cortex-A9",
+		"0xc0d": "Cortex-A17",
+		"0xc0e": "Cortex-A17",
+		"0xc0f": "Cortex-A15",
+		"0xd01": "Cortex-A32",
+		"0xd02": "Cortex-A34",
+		"0xd03": "Cortex-A53",
+		"0xd04": "Cortex-A35",
+		"0xd05": "Cortex-A55",
+		"0xd06": "Cortex-A65",
+		"0xd07": "Cortex-A57",
+		"0xd08": "Cortex-A72",
+		"0xd09": "Cortex-A73",
+		"0xd0a": "Cortex-A75",
+		"0xd0b": "Cortex-A76",
+		"0xd0c": "Neoverse-N1",
+		"0xd0d": "Cortex-A77",
+		"0xd0e": "Cortex-A76AE",
+		"0xd40": "Neoverse-V1",
+		"0xd41": "Cortex-A78",
+		"0xd42": "Cortex-A78AE",
+		"0xd43": "Cortex-A65AE",
+		"0xd44": "Cortex-X1",
+		"0xd46": "Cortex-A510",
+		"0xd47": "Cortex-A710",
+		"0xd48": "Cortex-X2",
+		"0xd49": "Neoverse-N2",
+		"0xd4a": "Neoverse-E1",
+		"0xd4b": "Cortex-A78C",
+		"0xd4c": "Cortex-X1C",
+		"0xd4d": "Cortex-A715",
+		"0xd4e": "Cortex-X3",
+		"0xd4f": "Neoverse-V2",
+		"0xd80": "Cortex-A520",
+		"0xd81": "Cortex-A720",
+		"0xd82": "Cortex-X4",
+		"0xd83": "Neoverse-V3AE",
+		"0xd84": "Neoverse-V3",
+		"0xd85": "Cortex-X925",
+		"0xd87": "Cortex-A725",
+		"0xd88": "Cortex-A520AE",
+		"0xd89": "Cortex-A720AE",
+		"0xd8e": "Neoverse-N3",
+		"0xd8f": "Cortex-A320",
+	}
+)
+
 func (si *SysInfo) getCPUInfo() {
 	si.CPU.Threads = uint(runtime.NumCPU())
 
@@ -40,13 +107,18 @@ func (si *SysInfo) getCPUInfo() {
 	}
 	defer func() { _ = f.Close() }()
 
+	si.parseCPUInfo(f)
+}
+
+func (si *SysInfo) parseCPUInfo(r io.Reader) {
 	cpu := make(map[string]bool)
 	core := make(map[string]bool)
 
-	var cpuID string
+	var cpuID, implementer string
 	var threads uint
+	var parts []string // each core type once, in the order listed
 
-	s := bufio.NewScanner(f)
+	s := bufio.NewScanner(r)
 	for s.Scan() {
 		if sl := reTwoColumns.Split(s.Text(), 2); sl != nil {
 			switch sl[0] {
@@ -76,11 +148,28 @@ func (si *SysInfo) getCPUInfo() {
 						}
 					}
 				}
+			case "CPU implementer":
+				if implementer == "" {
+					implementer = sl[1]
+				}
+			case "CPU part":
+				if name := armParts[sl[1]]; name != "" && implementer == "0x41" && !slices.Contains(parts, name) {
+					parts = append(parts, name)
+				}
 			}
 		}
 	}
 	if s.Err() != nil {
 		return
+	}
+
+	// ARM kernels print neither vendor_id nor, on arm64, model name. A
+	// big.LITTLE chip lists each of its core types.
+	if si.CPU.Vendor == "" {
+		si.CPU.Vendor = armImplementers[implementer]
+	}
+	if si.CPU.Model == "" {
+		si.CPU.Model = strings.Join(parts, "/")
 	}
 
 	// runtime.NumCPU() counts only the CPUs in the process affinity mask, /proc/cpuinfo lists all online CPUs.
