@@ -4,7 +4,7 @@
 
 // sysinfo is a very simple utility demonstrating sysinfo library capabilities. Start it to get pretty formatted JSON
 // output of all the info that sysinfo library provides. Due to its simplicity, the source code of the utility also
-// doubles down as an example of how to use the library.
+// doubles as an example of how to use the library.
 package main
 
 import (

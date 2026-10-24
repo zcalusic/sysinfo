@@ -1,8 +1,7 @@
 # Sysinfo
 
 [![Build Status](https://github.com/zcalusic/sysinfo/actions/workflows/go.yml/badge.svg)](https://github.com/zcalusic/sysinfo/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/zcalusic/sysinfo)](https://goreportcard.com/report/github.com/zcalusic/sysinfo)
-[![GoDoc](https://godoc.org/github.com/zcalusic/sysinfo?status.svg)](https://godoc.org/github.com/zcalusic/sysinfo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/zcalusic/sysinfo.svg)](https://pkg.go.dev/github.com/zcalusic/sysinfo)
 [![License](https://img.shields.io/badge/license-MIT-a31f34.svg?maxAge=2592000)](https://github.com/zcalusic/sysinfo/blob/master/LICENSE)
 [![Powered by](https://img.shields.io/badge/powered_by-Go-5272b4.svg?maxAge=2592000)](https://go.dev/)
 [![Platform](https://img.shields.io/badge/platform-Linux-009bde.svg?maxAge=2592000)](https://www.linuxfoundation.org/)
@@ -12,6 +11,8 @@ has no dependencies on the host system and doesn't execute external programs. It
 information, things that don't change often.
 
 ## Code Example
+
+This is also the source of the demo utility in [cmd/sysinfo](cmd/sysinfo/main.go).
 
 ```go
 package main
@@ -50,7 +51,7 @@ func main() {
 
 ## Motivation
 
-I couldn't find any self-contained library that would provide set of data/features I needed. So another sysinfo was
+I couldn't find any self-contained library that would provide the set of data/features I needed. So another sysinfo was
 born.
 
 The purpose of the library is to collect only inventory info. No metrics like CPU usage or load average will be added.
@@ -74,7 +75,7 @@ It depends on Linux internals heavily, so there are no plans to support other op
 
 ## Installation
 
-Just use go get.
+Add it to your module with go get.
 
 ```
 go get github.com/zcalusic/sysinfo
@@ -82,91 +83,96 @@ go get github.com/zcalusic/sysinfo
 
 There's also a very simple utility demonstrating sysinfo library capabilities. Start it (as superuser) to get pretty
 formatted JSON output of all the info that sysinfo library provides. Due to its simplicity, the source code of the
-utility also doubles down as an example of how to use the library.
+utility also doubles as an example of how to use the library.
 
 ```
-go get github.com/zcalusic/sysinfo/cmd/sysinfo
+go install github.com/zcalusic/sysinfo/cmd/sysinfo@latest
 ```
 
---
+---
 
-Build demo utility in Docker container:  https://github.com/mattscilipoti/compile_sysinfo
+Build demo utility in Docker container: https://github.com/mattscilipoti/compile_sysinfo
 
 ## Sample output
 
 ```json
 {
   "sysinfo": {
-    "version": "0.9.1",
-    "timestamp": "2016-09-24T13:30:28.369498856+02:00"
+    "version": "1.1.3",
+    "timestamp": "2026-10-24T11:31:40.799929752+02:00"
   },
   "node": {
-    "hostname": "web12",
-    "machineid": "04aa55927ebd390829367c1757b98cac",
+    "hostname": "demo",
+    "machineid": "a391d44fa1dc4680b1141b090144449e",
     "timezone": "Europe/Zagreb"
   },
   "os": {
-    "name": "CentOS Linux 7 (Core)",
-    "vendor": "centos",
-    "version": "7",
-    "release": "7.2.1511",
+    "name": "Debian GNU/Linux 13 (trixie)",
+    "vendor": "debian",
+    "version": "13",
+    "release": "13.7",
     "architecture": "amd64"
   },
   "kernel": {
-    "release": "3.10.0-327.13.1.el7.x86_64",
-    "version": "#1 SMP Thu Mar 31 16:04:38 UTC 2016",
+    "release": "6.12.113+deb13-amd64",
+    "version": "#1 SMP PREEMPT_DYNAMIC Debian 6.12.113-1 (2026-10-15)",
     "architecture": "x86_64"
   },
   "product": {
-    "name": "RH2288H V3",
-    "vendor": "Huawei",
-    "version": "V100R003",
-    "serial": "2103711GEL10F3430658"
+    "name": "QuantaPlex T22HF-1U",
+    "vendor": "Quanta Cloud Technology Inc.",
+    "version": "---",
+    "serial": "QTFCTH721000C4",
+    "uuid": "4aef9dc1-7cff-2000-b68c-a8c49668cbed",
+    "sku": "Default string"
   },
   "board": {
-    "name": "BC11HGSA0",
-    "vendor": "Huawei",
-    "version": "V100R003",
-    "serial": "033HXVCNG3107624"
+    "name": "S5HF MB",
+    "vendor": "Quanta Cloud Technology Inc.",
+    "version": "31S5HMB0010",
+    "serial": "BTH83010204",
+    "assettag": "---"
   },
   "chassis": {
-    "type": 17,
-    "vendor": "Huawei"
+    "type": 23,
+    "vendor": "Quanta Cloud Technology Inc.",
+    "version": "35S5SCA0000",
+    "serial": "QTFCTH721000C4",
+    "assettag": "---"
   },
   "bios": {
-    "vendor": "Insyde Corp.",
-    "version": "3.16",
-    "date": "03/16/2016"
+    "vendor": "American Megatrends Inc.",
+    "version": "3B21.Q201",
+    "date": "02/17/2022"
   },
   "cpu": {
-    "vendor": "GenuineIntel",
-    "model": "Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz",
+    "vendor": "AuthenticAMD",
+    "model": "AMD EPYC 7532 32-Core Processor",
     "speed": 2400,
-    "cache": 20480,
+    "cache": 512,
     "cpus": 1,
-    "cores": 8,
-    "threads": 16
+    "cores": 32,
+    "threads": 64
   },
   "memory": {
-    "type": "DRAM",
+    "type": "DDR4",
     "speed": 2133,
-    "size": 65536
+    "size": 32768
   },
   "storage": [
     {
-      "name": "sda",
-      "driver": "sd",
-      "vendor": "ATA",
-      "model": "ST9500620NS",
-      "serial": "9XF2HZ9K",
-      "size": 500
+      "name": "nvme0n1",
+      "model": "INTEL SSDPEDME016T4S",
+      "serial": "CVMD5215015U1Q5MAF",
+      "size": 1600,
+      "removable": false
     }
   ],
   "network": [
     {
-      "name": "enp3s0f1",
+      "name": "eth0",
       "driver": "ixgbe",
-      "macaddress": "84:ad:5a:e3:79:71",
+      "macaddress": "d8:c4:97:3a:77:53",
       "port": "fibre",
       "speed": 10000
     }
@@ -176,7 +182,7 @@ Build demo utility in Docker container:  https://github.com/mattscilipoti/compil
 
 ## Contributors
 
-Contributors are welcome, just open a new issue / pull request.
+Contributions are welcome, just open a new issue or pull request.
 
 ## License
 
