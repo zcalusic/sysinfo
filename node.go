@@ -22,38 +22,14 @@ func (si *SysInfo) getHostname() {
 	si.Node.Hostname = slurpFile("/proc/sys/kernel/hostname")
 }
 
-func (si *SysInfo) getSetMachineID() {
-	const pathSystemdMachineID = "/etc/machine-id"
-	const pathDbusMachineID = "/var/lib/dbus/machine-id"
-
-	systemdMachineID := slurpFile(pathSystemdMachineID)
-	dbusMachineID := slurpFile(pathDbusMachineID)
-
-	if systemdMachineID != "" && dbusMachineID != "" {
-		// All OK, just return the machine id.
-		if systemdMachineID == dbusMachineID {
-			si.Node.MachineID = systemdMachineID
+func (si *SysInfo) getMachineID() {
+	// Read only, never write: an empty /etc/machine-id may be intentional (image templates, systemd first boot),
+	// and during first boot it may contain "uninitialized".
+	for _, path := range []string{"/etc/machine-id", "/var/lib/dbus/machine-id"} {
+		if machineID := slurpFile(path); machineID != "" && machineID != "uninitialized" {
+			si.Node.MachineID = machineID
 			return
 		}
-
-		// They both exist, but they don't match! Copy systemd machine id to DBUS machine id.
-		spewFile(pathDbusMachineID, systemdMachineID, 0444)
-		si.Node.MachineID = systemdMachineID
-		return
-	}
-
-	// Copy DBUS machine id to non-existent systemd machine id.
-	if systemdMachineID == "" && dbusMachineID != "" {
-		spewFile(pathSystemdMachineID, dbusMachineID, 0444)
-		si.Node.MachineID = dbusMachineID
-		return
-	}
-
-	// Copy systemd machine id to non-existent DBUS machine id.
-	if systemdMachineID != "" && dbusMachineID == "" {
-		spewFile(pathDbusMachineID, systemdMachineID, 0444)
-		si.Node.MachineID = systemdMachineID
-		return
 	}
 }
 
@@ -96,7 +72,7 @@ func (si *SysInfo) getTimezone() {
 
 func (si *SysInfo) getNodeInfo() {
 	si.getHostname()
-	si.getSetMachineID()
+	si.getMachineID()
 	si.getHypervisor()
 	si.getTimezone()
 }

@@ -19,8 +19,3 @@ func slurpFile(path string) string {
 	// Trim spaces & \u0000 \uffff
 	return strings.Trim(string(data), " \r\n\t\u0000\uffff")
 }
-
-// Write one-liner text files, add newline, ignore errors (best effort).
-func spewFile(path string, data string, perm os.FileMode) {
-	_ = os.WriteFile(path, []byte(data+"\n"), perm)
-}
