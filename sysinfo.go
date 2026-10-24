@@ -39,7 +39,7 @@ func (si *SysInfo) GetSysInfo() {
 	si.getNodeInfo() // depends on BIOS info
 
 	// Hardware info
-	si.getCPUInfo() // depends on Node info
+	si.getCPUInfo()
 	si.getStorageInfo()
 	si.getNetworkInfo()
 
