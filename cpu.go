@@ -44,11 +44,14 @@ func (si *SysInfo) getCPUInfo() {
 	core := make(map[string]bool)
 
 	var cpuID string
+	var threads uint
 
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		if sl := reTwoColumns.Split(s.Text(), 2); sl != nil {
 			switch sl[0] {
+			case "processor":
+				threads++
 			case "physical id":
 				cpuID = sl[1]
 				cpu[cpuID] = true
@@ -80,6 +83,10 @@ func (si *SysInfo) getCPUInfo() {
 		return
 	}
 
+	// runtime.NumCPU() counts only the CPUs in the process affinity mask, /proc/cpuinfo lists all online CPUs.
+	if threads > 0 {
+		si.CPU.Threads = threads
+	}
 	si.CPU.Cpus = uint(len(cpu))
 	si.CPU.Cores = uint(len(core))
 }
