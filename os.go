@@ -44,7 +44,7 @@ func (si *SysInfo) getOSInfo() {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	s := bufio.NewScanner(f)
 	for s.Scan() {

@@ -3,7 +3,6 @@
 // Use of this source code is governed by an MIT-style license that can be found in the LICENSE file.
 
 //go:build linux
-// +build linux
 
 package sysinfo
 
@@ -29,5 +28,5 @@ func (si *SysInfo) getKernelInfo() {
 		return
 	}
 
-	si.Kernel.Architecture = strings.TrimRight(string((*[65]byte)(unsafe.Pointer(&uname.Machine))[:]), "\000")
+	si.Kernel.Architecture = strings.TrimRight(string((*[65]byte)(unsafe.Pointer(&uname.Machine))[:]), "\000") //nolint:gosec // Machine is [65]int8 or [65]uint8, depending on the architecture
 }

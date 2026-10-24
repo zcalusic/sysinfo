@@ -13,7 +13,7 @@ import (
 	"github.com/zcalusic/sysinfo"
 )
 
-func Test(t *testing.T) {
+func Test(_ *testing.T) {
 	var si sysinfo.SysInfo
 
 	si.GetSysInfo()

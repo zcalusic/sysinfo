@@ -61,7 +61,7 @@ func getSupported(name string) uint32 {
 	if err != nil {
 		return 0
 	}
-	defer syscall.Close(fd)
+	defer func() { _ = syscall.Close(fd) }()
 
 	// struct ethtool_cmd from /usr/include/linux/ethtool.h
 	var ethtool struct {
@@ -98,12 +98,12 @@ func getSupported(name string) uint32 {
 	}
 
 	copy(ifr.Name[:], name+"\000")
-	ifr.Data = uintptr(unsafe.Pointer(&ethtool))
+	ifr.Data = uintptr(unsafe.Pointer(&ethtool)) //nolint:gosec // ioctl argument, the kernel fills in struct ethtool_cmd
 
 	// SIOCETHTOOL from /usr/include/linux/sockios.h
 	const SIOCETHTOOL = 0x8946
 
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), uintptr(SIOCETHTOOL), uintptr(unsafe.Pointer(&ifr)))
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), uintptr(SIOCETHTOOL), uintptr(unsafe.Pointer(&ifr))) //nolint:gosec // ioctl argument, struct ifreq is padded to its full kernel size
 	if errno == 0 {
 		return ethtool.Supported
 	}

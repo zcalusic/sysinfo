@@ -64,8 +64,8 @@ func (si *SysInfo) getTimezone() {
 		if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
 			if tzfile, err := os.Readlink("/etc/localtime"); err == nil {
 				tzfile = strings.TrimPrefix(tzfile, "..")
-				if strings.HasPrefix(tzfile, zoneInfoPrefix) {
-					si.Node.Timezone = strings.TrimPrefix(tzfile, zoneInfoPrefix)
+				if timezone, ok := strings.CutPrefix(tzfile, zoneInfoPrefix); ok {
+					si.Node.Timezone = timezone
 					return
 				}
 			}
@@ -78,7 +78,7 @@ func (si *SysInfo) getTimezone() {
 	}
 
 	if f, err := os.Open("/etc/sysconfig/clock"); err == nil {
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		s := bufio.NewScanner(f)
 		for s.Scan() {
 			if sl := strings.Split(s.Text(), "="); len(sl) == 2 {

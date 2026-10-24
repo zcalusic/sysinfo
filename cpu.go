@@ -38,7 +38,7 @@ func (si *SysInfo) getCPUInfo() {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	cpu := make(map[string]bool)
 	core := make(map[string]bool)

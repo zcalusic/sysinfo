@@ -43,7 +43,7 @@ func getSerial(name, fullpath string) (serial string) {
 	return
 
 scan:
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	s := bufio.NewScanner(f)
 	for s.Scan() {
