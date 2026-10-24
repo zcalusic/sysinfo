@@ -88,6 +88,9 @@ func (si *SysInfo) getTimezone() {
 				}
 			}
 		}
+		if s.Err() != nil {
+			return
+		}
 	}
 }
 

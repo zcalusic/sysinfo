@@ -56,6 +56,9 @@ func (si *SysInfo) getOSInfo() {
 			si.OS.Version = strings.Trim(m[1], `"`)
 		}
 	}
+	if s.Err() != nil {
+		return
+	}
 
 	switch si.OS.Vendor {
 	case "debian":

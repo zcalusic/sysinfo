@@ -54,6 +54,9 @@ scan:
 			}
 		}
 	}
+	if s.Err() != nil {
+		return ""
+	}
 
 	return
 }
