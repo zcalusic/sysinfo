@@ -158,7 +158,38 @@ Build demo utility in Docker container: https://github.com/mattscilipoti/compile
     "type": "DDR4",
     "speed": 2133,
     "configuredspeed": 2133,
-    "size": 32768
+    "size": 32768,
+    "slots": 16,
+    "devices": [
+      {
+        "locator": "DIMM_A1",
+        "bank": "P0 CHANNEL A",
+        "vendor": "Samsung",
+        "model": "M393A2G40DB0-CPB",
+        "serial": "36B2D4E1",
+        "size": 16384,
+        "type": "DDR4",
+        "formfactor": "DIMM",
+        "rank": 2,
+        "speed": 2133,
+        "configuredspeed": 2133,
+        "voltage": 1200
+      },
+      {
+        "locator": "DIMM_B1",
+        "bank": "P0 CHANNEL B",
+        "vendor": "Samsung",
+        "model": "M393A2G40DB0-CPB",
+        "serial": "36B2D51A",
+        "size": 16384,
+        "type": "DDR4",
+        "formfactor": "DIMM",
+        "rank": 2,
+        "speed": 2133,
+        "configuredspeed": 2133,
+        "voltage": 1200
+      }
+    ]
   },
   "storage": [
     {

@@ -7,6 +7,7 @@ package sysinfo
 import (
 	"encoding/binary"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -56,10 +57,25 @@ func memoryArray(startKB, endKB uint32) dmiRecord {
 	return newRecord(19, 0x1f).dword(0x04, startKB).dword(0x08, endKB)
 }
 
+// physicalArray is a DMI type 16 record with the given handle and use (3: system memory, 4: video memory).
+func physicalArray(handle uint16, use byte) dmiRecord {
+	return newRecord(16, 0x17).word(0x02, handle).byte(0x05, use)
+}
+
+// strings replaces the record's empty string set with the given strings.
+func (r dmiRecord) strings(strs ...string) dmiRecord {
+	r = r[:len(r)-2]
+	for _, s := range strs {
+		r = append(append(r, s...), 0)
+	}
+	return append(r, 0)
+}
+
 var dmiTests = []struct {
 	name     string
 	table    []byte
-	memory   Memory
+	memory   Memory // without Devices
+	devices  []MemoryDevice
 	cpuSpeed uint
 }{
 	{
@@ -69,13 +85,15 @@ var dmiTests = []struct {
 			memoryDevice(8192, 0x1a, 3200),
 			memoryDevice(8192, 0x1a, 3200),
 		),
-		memory:   Memory{Type: "DDR4", Speed: 3200, Size: 16384},
+		memory:   Memory{Type: "DDR4", Speed: 3200, Size: 16384, Slots: 2},
+		devices:  []MemoryDevice{{Size: 8192, Type: "DDR4", Speed: 3200}, {Size: 8192, Type: "DDR4", Speed: 3200}},
 		cpuSpeed: 3600,
 	},
 	{
-		name:   "extended size",
-		table:  dmiTable(memoryDevice(0x7fff, 0x22, 4800).dword(0x1c, 65536)),
-		memory: Memory{Type: "DDR5", Speed: 4800, Size: 65536},
+		name:    "extended size",
+		table:   dmiTable(memoryDevice(0x7fff, 0x22, 4800).dword(0x1c, 65536)),
+		memory:  Memory{Type: "DDR5", Speed: 4800, Size: 65536, Slots: 1},
+		devices: []MemoryDevice{{Size: 65536, Type: "DDR5", Speed: 4800}},
 	},
 	{
 		name: "empty and unknown slots",
@@ -84,12 +102,60 @@ var dmiTests = []struct {
 			memoryDevice(0xffff, 0x02, 0),
 			memoryDevice(4096, 0x18, 1600),
 		),
-		memory: Memory{Type: "DDR3", Speed: 1600, Size: 4096},
+		memory:  Memory{Type: "DDR3", Speed: 1600, Size: 4096, Slots: 3},
+		devices: []MemoryDevice{{Size: 4096, Type: "DDR3", Speed: 1600}},
+	},
+	{
+		name: "size in KB",
+		table: dmiTable(
+			memoryDevice(0x8000|16384, 0x0f, 0),
+			memoryDevice(0x8000|512, 0x0f, 0),
+		),
+		memory:  Memory{Type: "SDRAM", Size: 16, Slots: 2},
+		devices: []MemoryDevice{{Size: 16, Type: "SDRAM"}},
+	},
+	{
+		name: "strings",
+		table: dmiTable(
+			memoryDevice(8192, 0x1a, 3200).byte(0x0e, 0x0d).byte(0x1b, 0x02).
+				byte(0x10, 1).byte(0x11, 2).byte(0x17, 3).byte(0x18, 4).byte(0x1a, 5).
+				strings("ChannelA-DIMM0", "BANK 0", "Not Specified", "00000000", "  M471A1K43DB1-CWE  "),
+			memoryDevice(8192, 0x1a, 3200).byte(0x10, 2).byte(0x11, 9).byte(0x17, 1).byte(0x18, 1).
+				strings("Samsung", "DIMM 1"),
+		),
+		memory: Memory{Type: "DDR4", Speed: 3200, Size: 16384, Slots: 2},
+		devices: []MemoryDevice{
+			{Locator: "ChannelA-DIMM0", Bank: "BANK 0", Model: "M471A1K43DB1-CWE", Size: 8192, Type: "DDR4", FormFactor: "SODIMM", Rank: 2, Speed: 3200},
+			{Locator: "DIMM 1", Vendor: "Samsung", Serial: "Samsung", Size: 8192, Type: "DDR4", Speed: 3200},
+		},
+	},
+	{
+		name: "video memory array",
+		table: dmiTable(
+			physicalArray(0x10, 0x03),
+			physicalArray(0x20, 0x04),
+			memoryDevice(8192, 0x1a, 3200).word(0x04, 0x20),
+			memoryDevice(16384, 0x1a, 3200).word(0x04, 0x10),
+		),
+		memory:  Memory{Type: "DDR4", Speed: 3200, Size: 16384, Slots: 1},
+		devices: []MemoryDevice{{Size: 16384, Type: "DDR4", Speed: 3200}},
+	},
+	{
+		name: "voltage",
+		table: dmiTable(
+			memoryDevice(16384, 0x22, 4800).word(0x26, 1100),
+			newRecord(17, 0x27).word(0x0c, 16384).byte(0x12, 0x22).word(0x15, 4800).word(0x26, 1100),
+		),
+		memory: Memory{Type: "DDR5", Speed: 4800, Size: 32768, Slots: 2},
+		devices: []MemoryDevice{
+			{Size: 16384, Type: "DDR5", Speed: 4800, Voltage: 1100},
+			{Size: 16384, Type: "DDR5", Speed: 4800},
+		},
 	},
 	{
 		name:   "type 19 fallback",
 		table:  dmiTable(memoryDevice(0, 0x02, 0), memoryArray(0, 0x3fffff), memoryArray(0x400000, 0x7fffff)),
-		memory: Memory{Type: "DRAM", Size: 8192},
+		memory: Memory{Type: "DRAM", Size: 8192, Slots: 1},
 	},
 	{
 		name:   "type 19 fallback, extended addresses",
@@ -98,17 +164,25 @@ var dmiTests = []struct {
 	},
 	{
 		name:  "records too short",
-		table: dmiTable(newRecord(4, 0x16), newRecord(17, 0x12).word(0x0c, 4096), newRecord(19, 0x0e)),
+		table: dmiTable(newRecord(4, 0x16), newRecord(16, 0x06).byte(0x05, 0x03), newRecord(17, 0x12).word(0x0c, 4096), newRecord(19, 0x0e)),
 	},
 	{
-		name:   "truncated table",
-		table:  append(memoryDevice(4096, 0x1a, 2400), 17, 0x28, 0, 0),
-		memory: Memory{Type: "DDR4", Speed: 2400, Size: 4096},
+		name:    "truncated table",
+		table:   append(memoryDevice(4096, 0x1a, 2400), 17, 0x28, 0, 0),
+		memory:  Memory{Type: "DDR4", Speed: 2400, Size: 4096, Slots: 1},
+		devices: []MemoryDevice{{Size: 4096, Type: "DDR4", Speed: 2400}},
 	},
 	{
-		name:   "records after end of table",
-		table:  append(dmiTable(memoryDevice(4096, 0x1a, 2400)), memoryDevice(4096, 0x1a, 2400)...),
-		memory: Memory{Type: "DDR4", Speed: 2400, Size: 4096},
+		name:    "truncated string set",
+		table:   memoryDevice(4096, 0x1a, 2400).byte(0x10, 1).strings("DIMM 0")[:0x28+4],
+		memory:  Memory{Type: "DDR4", Speed: 2400, Size: 4096, Slots: 1},
+		devices: []MemoryDevice{{Locator: "DIMM", Size: 4096, Type: "DDR4", Speed: 2400}},
+	},
+	{
+		name:    "records after end of table",
+		table:   append(dmiTable(memoryDevice(4096, 0x1a, 2400)), memoryDevice(4096, 0x1a, 2400)...),
+		memory:  Memory{Type: "DDR4", Speed: 2400, Size: 4096, Slots: 1},
+		devices: []MemoryDevice{{Size: 4096, Type: "DDR4", Speed: 2400}},
 	},
 	{
 		name: "configured speed",
@@ -117,24 +191,44 @@ var dmiTests = []struct {
 			memoryDevice(16384, 0x1a, 3200).word(0x20, 2666),
 			memoryDevice(16384, 0x1a, 2400).word(0x20, 2400),
 		),
-		memory: Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666, Size: 32768},
+		memory: Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666, Size: 32768, Slots: 3},
+		devices: []MemoryDevice{
+			{Size: 16384, Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666},
+			{Size: 16384, Type: "DDR4", Speed: 2400, ConfiguredSpeed: 2400},
+		},
 	},
 	{
-		name:   "configured speed, record too short",
-		table:  dmiTable(newRecord(17, 0x21).word(0x0c, 4096).byte(0x12, 0x18).word(0x15, 1600)),
-		memory: Memory{Type: "DDR3", Speed: 1600, Size: 4096},
+		name:    "configured speed, record too short",
+		table:   dmiTable(newRecord(17, 0x21).word(0x0c, 4096).byte(0x12, 0x18).word(0x15, 1600)),
+		memory:  Memory{Type: "DDR3", Speed: 1600, Size: 4096, Slots: 1},
+		devices: []MemoryDevice{{Size: 4096, Type: "DDR3", Speed: 1600}},
 	},
 	{
 		name: "extended speeds",
 		table: dmiTable(newRecord(17, 0x5c).word(0x0c, 16384).byte(0x12, 0x22).
 			word(0x15, 0xffff).word(0x20, 0xffff).dword(0x54, 70000).dword(0x58, 0x80000000|68000)),
-		memory: Memory{Type: "DDR5", Speed: 70000, ConfiguredSpeed: 68000, Size: 16384},
+		memory:  Memory{Type: "DDR5", Speed: 70000, ConfiguredSpeed: 68000, Size: 16384, Slots: 1},
+		devices: []MemoryDevice{{Size: 16384, Type: "DDR5", Speed: 70000, ConfiguredSpeed: 68000}},
 	},
 	{
-		name:   "extended speeds, record too short",
-		table:  dmiTable(memoryDevice(16384, 0x22, 0xffff).word(0x20, 0xffff)),
-		memory: Memory{Type: "DDR5", Size: 16384},
+		name:    "extended speeds, record too short",
+		table:   dmiTable(memoryDevice(16384, 0x22, 0xffff).word(0x20, 0xffff)),
+		memory:  Memory{Type: "DDR5", Size: 16384, Slots: 1},
+		devices: []MemoryDevice{{Size: 16384, Type: "DDR5"}},
 	},
+}
+
+// checkMemory compares the parsed memory summary, devices and CPU speed with the expected ones.
+func checkMemory(t *testing.T, si *SysInfo, memory Memory, devices []MemoryDevice, cpuSpeed uint) {
+	t.Helper()
+	summary := si.Memory
+	summary.Devices = nil
+	if !reflect.DeepEqual(summary, memory) || si.CPU.Speed != cpuSpeed {
+		t.Errorf("got memory %+v CPU speed %d, want %+v %d", summary, si.CPU.Speed, memory, cpuSpeed)
+	}
+	if !reflect.DeepEqual(si.Memory.Devices, devices) {
+		t.Errorf("got devices\n%+v\nwant\n%+v", si.Memory.Devices, devices)
+	}
 }
 
 func TestParseDMI(t *testing.T) {
@@ -142,29 +236,86 @@ func TestParseDMI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var si SysInfo
 			si.parseDMI(tc.table)
-			if si.Memory != tc.memory || si.CPU.Speed != tc.cpuSpeed {
-				t.Fatalf("got memory %+v CPU speed %d, want %+v %d", si.Memory, si.CPU.Speed, tc.memory, tc.cpuSpeed)
-			}
+			checkMemory(t, &si, tc.memory, tc.devices, tc.cpuSpeed)
 		})
 	}
+}
+
+func TestParseDMITwice(t *testing.T) {
+	var si SysInfo
+	si.parseDMI(dmiTests[0].table)
+	si.parseDMI(dmiTests[0].table)
+	checkMemory(t, &si, dmiTests[0].memory, dmiTests[0].devices, dmiTests[0].cpuSpeed)
+}
+
+// dimms returns copies of base, one per locator and bank pair.
+func dimms(base MemoryDevice, locators ...[2]string) []MemoryDevice {
+	var list []MemoryDevice
+	for _, l := range locators {
+		d := base
+		d.Locator, d.Bank = l[0], l[1]
+		list = append(list, d)
+	}
+	return list
 }
 
 // Real SMBIOS tables, with serial numbers, asset tags and UUIDs scrubbed. Expected values checked against dmidecode.
 var dmiFiles = []struct {
 	file     string
-	memory   Memory
+	memory   Memory // without Devices
+	devices  []MemoryDevice
 	cpuSpeed uint
 }{
 	// QEMU/KVM virtual machine (q35, SeaBIOS), 16 GB, no memory type or speed.
-	{"dmi-qemu-q35.bin", Memory{Type: "RAM", Size: 16384}, 2000},
+	{
+		"dmi-qemu-q35.bin",
+		Memory{Type: "RAM", Size: 16384, Slots: 1},
+		[]MemoryDevice{{Locator: "DIMM 0", Vendor: "QEMU", Size: 16384, Type: "RAM", FormFactor: "DIMM"}},
+		2000,
+	},
 	// Supermicro X10DRH-CT, SMBIOS 3.0, 2x Xeon E5-2630 v3, 4x 8 GB DDR4 in 16 slots.
-	{"dmi-supermicro-x10drh.bin", Memory{Type: "DDR4", Speed: 2133, ConfiguredSpeed: 1866, Size: 32768}, 2400},
+	{
+		"dmi-supermicro-x10drh.bin",
+		Memory{Type: "DDR4", Speed: 2133, ConfiguredSpeed: 1866, Size: 32768, Slots: 16},
+		dimms(MemoryDevice{Vendor: "Samsung", Model: "M393A1G40DB0-CPB", Serial: "XXXXXXXX", Size: 8192, Type: "DDR4", FormFactor: "DIMM", Rank: 1, Speed: 2133, ConfiguredSpeed: 1866},
+			[2]string{"P1_DIMMA1", "P0_Node0_Channel0_Dimm0"}, [2]string{"P1_DIMMB1", "P0_Node0_Channel1_Dimm0"},
+			[2]string{"P2_DIMME1", "P1_Node1_Channel0_Dimm0"}, [2]string{"P2_DIMMF1", "P1_Node1_Channel1_Dimm0"}),
+		2400,
+	},
 	// Supermicro X10SRi-F, SMBIOS 3.0, Xeon E5-1650 v4, 4x 32 GB DDR4 in 8 slots (extended size field).
-	{"dmi-supermicro-x10sri.bin", Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2400, Size: 131072}, 3600},
-	// ASUS ROG STRIX B850-E, SMBIOS 3.6, Ryzen 7 9700X, 4x 16 GB DDR5 (EXPO, configured above rated speed).
-	{"dmi-asus-b850.bin", Memory{Type: "DDR5", Speed: 4800, ConfiguredSpeed: 6000, Size: 65536}, 3800},
-	// Dell PowerEdge R240, SMBIOS 3.1, Xeon E-2274G, 2x 16 GB DDR4 in 4 slots.
-	{"dmi-dell-r240.bin", Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666, Size: 32768}, 4000},
+	{
+		"dmi-supermicro-x10sri.bin",
+		Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2400, Size: 131072, Slots: 8},
+		dimms(MemoryDevice{Vendor: "Samsung", Model: "M393A4K40EB3-CWE", Serial: "XXXXXXXX", Size: 32768, Type: "DDR4", FormFactor: "DIMM", Rank: 2, Speed: 3200, ConfiguredSpeed: 2400},
+			[2]string{"DIMMA1", "P0_Node0_Channel0_Dimm0"}, [2]string{"DIMMB1", "P0_Node0_Channel1_Dimm0"},
+			[2]string{"DIMMC1", "P0_Node0_Channel2_Dimm0"}, [2]string{"DIMMD1", "P0_Node0_Channel3_Dimm0"}),
+		3600,
+	},
+	// ASUS ROG STRIX B850-E, SMBIOS 3.6, Ryzen 7 9700X, 4x 16 GB DDR5 (EXPO, configured above rated speed, zero serials).
+	{
+		"dmi-asus-b850.bin",
+		Memory{Type: "DDR5", Speed: 4800, ConfiguredSpeed: 6000, Size: 65536, Slots: 4},
+		dimms(MemoryDevice{Vendor: "Corsair", Model: "CMK32GX5M2B6000Z30", Size: 16384, Type: "DDR5", FormFactor: "DIMM", Rank: 1, Speed: 4800, ConfiguredSpeed: 6000, Voltage: 1100},
+			[2]string{"DIMM 0", "P0 CHANNEL A"}, [2]string{"DIMM 1", "P0 CHANNEL A"},
+			[2]string{"DIMM 0", "P0 CHANNEL B"}, [2]string{"DIMM 1", "P0 CHANNEL B"}),
+		3800,
+	},
+	// Quanta QuantaPlex T22HF-1U (S5HF MB), SMBIOS 3.2, EPYC 7532, 2x 16 GB DDR4 in 16 slots (8 channels).
+	{
+		"dmi-quanta-s5hf.bin",
+		Memory{Type: "DDR4", Speed: 2133, ConfiguredSpeed: 2133, Size: 32768, Slots: 16},
+		dimms(MemoryDevice{Vendor: "Samsung", Model: "M393A2G40DB0-CPB", Serial: "XXXXXXXX", Size: 16384, Type: "DDR4", FormFactor: "DIMM", Rank: 2, Speed: 2133, ConfiguredSpeed: 2133, Voltage: 1200},
+			[2]string{"DIMM_A1", "P0 CHANNEL A"}, [2]string{"DIMM_B1", "P0 CHANNEL B"}),
+		2400,
+	},
+	// Dell PowerEdge R240, SMBIOS 3.1, Xeon E-2274G, 2x 16 GB DDR4 in 4 slots (JEDEC vendor code, no bank).
+	{
+		"dmi-dell-r240.bin",
+		Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666, Size: 32768, Slots: 4},
+		dimms(MemoryDevice{Vendor: "00CE00000C07", Model: "M391A2G43BB2-CWE", Serial: "XXXXXXXX", Size: 16384, Type: "DDR4", FormFactor: "DIMM", Rank: 1, Speed: 3200, ConfiguredSpeed: 2666, Voltage: 1200},
+			[2]string{"A1", ""}, [2]string{"A2", ""}),
+		4000,
+	},
 }
 
 func TestParseDMIFiles(t *testing.T) {
@@ -177,9 +328,7 @@ func TestParseDMIFiles(t *testing.T) {
 
 			var si SysInfo
 			si.parseDMI(dmi)
-			if si.Memory != tc.memory || si.CPU.Speed != tc.cpuSpeed {
-				t.Fatalf("got memory %+v CPU speed %d, want %+v %d", si.Memory, si.CPU.Speed, tc.memory, tc.cpuSpeed)
-			}
+			checkMemory(t, &si, tc.memory, tc.devices, tc.cpuSpeed)
 		})
 	}
 }

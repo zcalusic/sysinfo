@@ -9,14 +9,62 @@ import (
 	"encoding/binary"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Memory information.
 type Memory struct {
+	Type            string         `json:"type,omitempty"`
+	Speed           uint           `json:"speed,omitempty"`           // RAM rated (maximum) data rate in MT/s
+	ConfiguredSpeed uint           `json:"configuredspeed,omitempty"` // RAM configured (running) data rate in MT/s
+	Size            uint           `json:"size,omitempty"`            // RAM size in MB
+	Slots           uint           `json:"slots,omitempty"`           // number of memory device sockets, populated or not
+	Devices         []MemoryDevice `json:"devices,omitempty"`         // populated memory devices
+}
+
+// MemoryDevice information, for one memory module or soldered memory.
+type MemoryDevice struct {
+	Locator         string `json:"locator,omitempty"` // socket or board position, e.g. "DIMMA1"
+	Bank            string `json:"bank,omitempty"`    // bank locator, e.g. "P0 CHANNEL A"
+	Vendor          string `json:"vendor,omitempty"`
+	Model           string `json:"model,omitempty"` // part number
+	Serial          string `json:"serial,omitempty"`
+	Size            uint   `json:"size,omitempty"` // size in MB
 	Type            string `json:"type,omitempty"`
-	Speed           uint   `json:"speed,omitempty"`           // RAM rated (maximum) data rate in MT/s
-	ConfiguredSpeed uint   `json:"configuredspeed,omitempty"` // RAM configured (running) data rate in MT/s
-	Size            uint   `json:"size,omitempty"`            // RAM size in MB
+	FormFactor      string `json:"formfactor,omitempty"`
+	Rank            uint   `json:"rank,omitempty"`
+	Speed           uint   `json:"speed,omitempty"`           // rated (maximum) data rate in MT/s
+	ConfiguredSpeed uint   `json:"configuredspeed,omitempty"` // configured (running) data rate in MT/s
+	Voltage         uint   `json:"voltage,omitempty"`         // configured voltage in mV
+}
+
+// SMBIOS Reference Specification Version 3.8.0, 7.18.2.
+var memoryTypes = [...]string{
+	"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
+	"EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM", "SGRAM", "RDRAM",
+	"DDR", "DDR2", "DDR2 FB-DIMM", "Reserved", "Reserved", "Reserved", "DDR3",
+	"FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4", "Logical non-volatile device",
+	"HBM", "HBM2", "DDR5", "LPDDR5", "HBM3",
+}
+
+// SMBIOS Reference Specification Version 3.8.0, 7.18.1.
+var memoryFormFactors = [...]string{
+	"Other", "Unknown", "SIMM", "SIP", "Chip", "DIP", "ZIP", "Proprietary Card",
+	"DIMM", "TSOP", "Row of chips", "RIMM", "SODIMM", "SRIMM", "FB-DIMM", "Die",
+}
+
+// Strings firmware puts in memory device fields that hold no information.
+var dmiPlaceholders = map[string]bool{
+	"not specified": true, "unknown": true, "to be filled by o.e.m.": true, "default string": true,
+	"none": true, "n/a": true, "no dimm": true,
+}
+
+// lookup returns the 1-based entry index of names, or "" if out of range.
+func lookup(names []string, index byte) string {
+	if index >= 1 && int(index) <= len(names) {
+		return names[index-1]
+	}
+	return ""
 }
 
 func word(data []byte, index int) uint16 {
@@ -62,90 +110,168 @@ func (si *SysInfo) getMemoryInfo() {
 	si.parseDMI(dmi)
 }
 
-// parseDMI fills in memory information and CPU speed from a raw SMBIOS table.
-func (si *SysInfo) parseDMI(dmi []byte) {
-	si.Memory.Size = 0
-	var memSizeAlt uint
-loop:
+// dmiStructure is one SMBIOS structure: its formatted area and its strings.
+type dmiStructure struct {
+	data    []byte
+	strings [][]byte
+}
+
+// str returns the structure's string referenced by the byte at index (1-based, 0 for none), with surrounding spaces
+// removed and placeholders like "Not Specified" returned as "".
+func (s dmiStructure) str(index int) string {
+	if index >= len(s.data) {
+		return ""
+	}
+	n := int(s.data[index])
+	if n < 1 || n > len(s.strings) {
+		return ""
+	}
+	v := string(bytes.TrimSpace(s.strings[n-1]))
+	if dmiPlaceholders[strings.ToLower(v)] {
+		return ""
+	}
+	return v
+}
+
+// dmiStructures splits a raw SMBIOS table into structures, stopping at the end-of-table structure or at a malformed or
+// truncated one.
+func dmiStructures(dmi []byte) []dmiStructure {
+	var list []dmiStructure
 	for p := 0; p < len(dmi)-1; {
 		recType := dmi[p]
-		recLen := dmi[p+1]
+		recLen := int(dmi[p+1])
 
 		// Malformed or truncated table, stop parsing.
-		if recLen < 4 || p+int(recLen) > len(dmi) {
+		if recLen < 4 || p+recLen > len(dmi) {
 			break
 		}
 
-		switch recType {
+		s := dmiStructure{data: dmi[p : p+recLen]}
+		end := bytes.Index(dmi[p+recLen:], []byte{0, 0})
+		if end < 0 {
+			// No string set terminator: the table is truncated.
+			end = len(dmi) - p - recLen
+		}
+		if area := dmi[p+recLen : p+recLen+end]; len(area) > 0 {
+			s.strings = bytes.Split(area, []byte{0})
+		}
+		list = append(list, s)
+
+		if recType == 127 {
+			break
+		}
+		p += recLen + end + 2
+	}
+	return list
+}
+
+// memorySize returns the size in MB of a DMI type 17 memory device, and false if no device is installed or its size is
+// unknown.
+func memorySize(rec []byte) (uint, bool) {
+	size := uint(word(rec, 0x0c))
+	switch {
+	case size == 0 || size == 0xffff:
+		return 0, false
+	case size == 0x7fff:
+		if len(rec) < 0x20 {
+			return 0, false
+		}
+		size = uint(dword(rec, 0x1c) & 0x7fffffff)
+	case size&0x8000 != 0:
+		// Size in KB.
+		size = (size & 0x7fff) / 1024
+	}
+	return size, size != 0
+}
+
+// parseDMI fills in memory information and CPU speed from a raw SMBIOS table.
+func (si *SysInfo) parseDMI(dmi []byte) {
+	si.Memory = Memory{}
+	structures := dmiStructures(dmi)
+
+	// Physical memory arrays used for system memory, not video memory or flash.
+	systemArrays := map[uint16]bool{}
+	for _, s := range structures {
+		if s.data[0] == 16 && len(s.data) >= 0x07 && s.data[0x05] == 0x03 {
+			systemArrays[word(s.data, 0x02)] = true
+		}
+	}
+
+	var memSizeAlt uint
+	for _, s := range structures {
+		rec := s.data
+		switch rec[0] {
 		case 4:
-			if si.CPU.Speed == 0 && recLen >= 0x18 {
-				si.CPU.Speed = uint(word(dmi, p+0x16))
+			if si.CPU.Speed == 0 && len(rec) >= 0x18 {
+				si.CPU.Speed = uint(word(rec, 0x16))
 			}
 		case 17:
-			if recLen < 0x13 {
+			if len(rec) < 0x13 {
 				break
 			}
-			size := uint(word(dmi, p+0x0c))
-			if size == 0 || size == 0xffff || size&0x8000 == 0x8000 {
+			if len(systemArrays) > 0 && !systemArrays[word(rec, 0x04)] {
 				break
 			}
-			if size == 0x7fff {
-				if recLen >= 0x20 {
-					size = uint(dword(dmi, p+0x1c))
-				} else {
-					break
-				}
+			si.Memory.Slots++
+
+			size, ok := memorySize(rec)
+			if !ok {
+				break
 			}
 
+			dev := MemoryDevice{
+				Locator:    s.str(0x10),
+				Bank:       s.str(0x11),
+				Size:       size,
+				Type:       lookup(memoryTypes[:], rec[0x12]),
+				FormFactor: lookup(memoryFormFactors[:], rec[0x0e]),
+			}
+			if len(rec) >= 0x17 {
+				dev.Speed = memorySpeed(rec, 0x15, 0x54)
+			}
+			if len(rec) >= 0x1b {
+				dev.Vendor = s.str(0x17)
+				dev.Serial = s.str(0x18)
+				dev.Model = s.str(0x1a)
+				// Firmware without serial numbers often fills them with zeros.
+				if strings.Trim(dev.Serial, "0") == "" {
+					dev.Serial = ""
+				}
+			}
+			if len(rec) >= 0x1c {
+				dev.Rank = uint(rec[0x1b] & 0x0f)
+			}
+			dev.ConfiguredSpeed = memorySpeed(rec, 0x20, 0x58)
+			if len(rec) >= 0x28 {
+				dev.Voltage = uint(word(rec, 0x26))
+			}
+			si.Memory.Devices = append(si.Memory.Devices, dev)
+
+			// The summary: total size, the first device's type, and both speeds from the first device with a known
+			// speed.
 			si.Memory.Size += size
-
 			if si.Memory.Type == "" {
-				// SMBIOS Reference Specification Version 3.8.0, page 103
-				memTypes := [...]string{
-					"Other", "Unknown", "DRAM", "EDRAM", "VRAM", "SRAM", "RAM", "ROM", "FLASH",
-					"EEPROM", "FEPROM", "EPROM", "CDRAM", "3DRAM", "SDRAM", "SGRAM", "RDRAM",
-					"DDR", "DDR2", "DDR2 FB-DIMM", "Reserved", "Reserved", "Reserved", "DDR3",
-					"FBD2", "DDR4", "LPDDR", "LPDDR2", "LPDDR3", "LPDDR4", "Logical non-volatile device",
-					"HBM", "HBM2", "DDR5", "LPDDR5", "HBM3",
-				}
-
-				if index := int(dmi[p+0x12]); index >= 1 && index <= len(memTypes) {
-					si.Memory.Type = memTypes[index-1]
-				}
+				si.Memory.Type = dev.Type
 			}
-
-			// Both speeds from the same memory device, the first one with a known speed.
-			if si.Memory.Speed == 0 && recLen >= 0x17 {
-				if speed := memorySpeed(dmi[p:p+int(recLen)], 0x15, 0x54); speed != 0 {
-					si.Memory.Speed = speed
-					si.Memory.ConfiguredSpeed = memorySpeed(dmi[p:p+int(recLen)], 0x20, 0x58)
-				}
+			if si.Memory.Speed == 0 && dev.Speed != 0 {
+				si.Memory.Speed = dev.Speed
+				si.Memory.ConfiguredSpeed = dev.ConfiguredSpeed
 			}
 		case 19:
-			if recLen < 0x0f {
+			if len(rec) < 0x0f {
 				break
 			}
-			start := uint(dword(dmi, p+0x04))
-			end := uint(dword(dmi, p+0x08))
+			start := uint(dword(rec, 0x04))
+			end := uint(dword(rec, 0x08))
 			if start == 0xffffffff && end == 0xffffffff {
-				if recLen >= 0x1f {
-					start64 := qword(dmi, p+0x0f)
-					end64 := qword(dmi, p+0x17)
+				if len(rec) >= 0x1f {
+					start64 := qword(rec, 0x0f)
+					end64 := qword(rec, 0x17)
 					memSizeAlt += uint((end64 - start64 + 1) / 1048576)
 				}
 			} else {
 				memSizeAlt += (end - start + 1) / 1024
 			}
-		case 127:
-			break loop
-		}
-
-		for p += int(recLen); p < len(dmi)-1; {
-			if bytes.Equal(dmi[p:p+2], []byte{0, 0}) {
-				p += 2
-				break
-			}
-			p++
 		}
 	}
 
