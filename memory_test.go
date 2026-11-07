@@ -124,23 +124,46 @@ func TestParseDMI(t *testing.T) {
 	}
 }
 
-// From a QEMU/KVM virtual machine (q35, SeaBIOS) with 16 GB of RAM.
-func TestParseDMIQEMU(t *testing.T) {
-	dmi, err := os.ReadFile("testdata/dmi-qemu-q35.bin")
-	if err != nil {
-		t.Fatal(err)
-	}
+// Real SMBIOS tables, with serial numbers, asset tags and UUIDs scrubbed. Expected values checked against dmidecode.
+var dmiFiles = []struct {
+	file     string
+	memory   Memory
+	cpuSpeed uint
+}{
+	// QEMU/KVM virtual machine (q35, SeaBIOS), 16 GB, no memory type or speed.
+	{"dmi-qemu-q35.bin", Memory{Type: "RAM", Size: 16384}, 2000},
+	// Supermicro X10DRH-CT, SMBIOS 3.0, 2x Xeon E5-2630 v3, 4x 8 GB DDR4 in 16 slots.
+	{"dmi-supermicro-x10drh.bin", Memory{Type: "DDR4", Speed: 2133, Size: 32768}, 2400},
+	// Supermicro X10SRi-F, SMBIOS 3.0, Xeon E5-1650 v4, 4x 32 GB DDR4 in 8 slots (extended size field).
+	{"dmi-supermicro-x10sri.bin", Memory{Type: "DDR4", Speed: 3200, Size: 131072}, 3600},
+	// ASUS ROG STRIX B850-E, SMBIOS 3.6, Ryzen 7 9700X, 4x 16 GB DDR5.
+	{"dmi-asus-b850.bin", Memory{Type: "DDR5", Speed: 4800, Size: 65536}, 3800},
+	// Dell PowerEdge R240, SMBIOS 3.1, Xeon E-2274G, 2x 16 GB DDR4 in 4 slots.
+	{"dmi-dell-r240.bin", Memory{Type: "DDR4", Speed: 3200, Size: 32768}, 4000},
+}
 
-	var si SysInfo
-	si.parseDMI(dmi)
-	if want := (Memory{Type: "RAM", Size: 16384}); si.Memory != want || si.CPU.Speed != 2000 {
-		t.Fatalf("got memory %+v CPU speed %d, want %+v 2000", si.Memory, si.CPU.Speed, want)
+func TestParseDMIFiles(t *testing.T) {
+	for _, tc := range dmiFiles {
+		t.Run(tc.file, func(t *testing.T) {
+			dmi, err := os.ReadFile("testdata/" + tc.file)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var si SysInfo
+			si.parseDMI(dmi)
+			if si.Memory != tc.memory || si.CPU.Speed != tc.cpuSpeed {
+				t.Fatalf("got memory %+v CPU speed %d, want %+v %d", si.Memory, si.CPU.Speed, tc.memory, tc.cpuSpeed)
+			}
+		})
 	}
 }
 
 func FuzzParseDMI(f *testing.F) {
-	if dmi, err := os.ReadFile("testdata/dmi-qemu-q35.bin"); err == nil {
-		f.Add(dmi)
+	for _, tc := range dmiFiles {
+		if dmi, err := os.ReadFile("testdata/" + tc.file); err == nil {
+			f.Add(dmi)
+		}
 	}
 	for _, tc := range dmiTests {
 		f.Add(tc.table)
