@@ -13,9 +13,10 @@ import (
 
 // Memory information.
 type Memory struct {
-	Type  string `json:"type,omitempty"`
-	Speed uint   `json:"speed,omitempty"` // RAM data rate in MT/s
-	Size  uint   `json:"size,omitempty"`  // RAM size in MB
+	Type            string `json:"type,omitempty"`
+	Speed           uint   `json:"speed,omitempty"`           // RAM rated (maximum) data rate in MT/s
+	ConfiguredSpeed uint   `json:"configuredspeed,omitempty"` // RAM configured (running) data rate in MT/s
+	Size            uint   `json:"size,omitempty"`            // RAM size in MB
 }
 
 func word(data []byte, index int) uint16 {
@@ -28,6 +29,22 @@ func dword(data []byte, index int) uint32 {
 
 func qword(data []byte, index int) uint64 {
 	return binary.LittleEndian.Uint64(data[index : index+8])
+}
+
+// memorySpeed returns a speed in MT/s from a DMI type 17 record: the word at index, or, if that is 0xffff (SMBIOS 3.3),
+// the extended speed dword at ext. It returns 0 if the speed is unknown or the record is too short.
+func memorySpeed(rec []byte, index, ext int) uint {
+	if len(rec) < index+2 {
+		return 0
+	}
+	speed := uint(word(rec, index))
+	if speed == 0xffff {
+		if len(rec) < ext+4 {
+			return 0
+		}
+		speed = uint(dword(rec, ext) & 0x7fffffff)
+	}
+	return speed
 }
 
 func (si *SysInfo) getMemoryInfo() {
@@ -97,9 +114,11 @@ loop:
 				}
 			}
 
+			// Both speeds from the same memory device, the first one with a known speed.
 			if si.Memory.Speed == 0 && recLen >= 0x17 {
-				if speed := uint(word(dmi, p+0x15)); speed != 0 {
+				if speed := memorySpeed(dmi[p:p+int(recLen)], 0x15, 0x54); speed != 0 {
 					si.Memory.Speed = speed
+					si.Memory.ConfiguredSpeed = memorySpeed(dmi[p:p+int(recLen)], 0x20, 0x58)
 				}
 			}
 		case 19:

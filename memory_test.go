@@ -110,6 +110,31 @@ var dmiTests = []struct {
 		table:  append(dmiTable(memoryDevice(4096, 0x1a, 2400)), memoryDevice(4096, 0x1a, 2400)...),
 		memory: Memory{Type: "DDR4", Speed: 2400, Size: 4096},
 	},
+	{
+		name: "configured speed",
+		table: dmiTable(
+			memoryDevice(0, 0x02, 0),
+			memoryDevice(16384, 0x1a, 3200).word(0x20, 2666),
+			memoryDevice(16384, 0x1a, 2400).word(0x20, 2400),
+		),
+		memory: Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666, Size: 32768},
+	},
+	{
+		name:   "configured speed, record too short",
+		table:  dmiTable(newRecord(17, 0x21).word(0x0c, 4096).byte(0x12, 0x18).word(0x15, 1600)),
+		memory: Memory{Type: "DDR3", Speed: 1600, Size: 4096},
+	},
+	{
+		name: "extended speeds",
+		table: dmiTable(newRecord(17, 0x5c).word(0x0c, 16384).byte(0x12, 0x22).
+			word(0x15, 0xffff).word(0x20, 0xffff).dword(0x54, 70000).dword(0x58, 0x80000000|68000)),
+		memory: Memory{Type: "DDR5", Speed: 70000, ConfiguredSpeed: 68000, Size: 16384},
+	},
+	{
+		name:   "extended speeds, record too short",
+		table:  dmiTable(memoryDevice(16384, 0x22, 0xffff).word(0x20, 0xffff)),
+		memory: Memory{Type: "DDR5", Size: 16384},
+	},
 }
 
 func TestParseDMI(t *testing.T) {
@@ -133,13 +158,13 @@ var dmiFiles = []struct {
 	// QEMU/KVM virtual machine (q35, SeaBIOS), 16 GB, no memory type or speed.
 	{"dmi-qemu-q35.bin", Memory{Type: "RAM", Size: 16384}, 2000},
 	// Supermicro X10DRH-CT, SMBIOS 3.0, 2x Xeon E5-2630 v3, 4x 8 GB DDR4 in 16 slots.
-	{"dmi-supermicro-x10drh.bin", Memory{Type: "DDR4", Speed: 2133, Size: 32768}, 2400},
+	{"dmi-supermicro-x10drh.bin", Memory{Type: "DDR4", Speed: 2133, ConfiguredSpeed: 1866, Size: 32768}, 2400},
 	// Supermicro X10SRi-F, SMBIOS 3.0, Xeon E5-1650 v4, 4x 32 GB DDR4 in 8 slots (extended size field).
-	{"dmi-supermicro-x10sri.bin", Memory{Type: "DDR4", Speed: 3200, Size: 131072}, 3600},
-	// ASUS ROG STRIX B850-E, SMBIOS 3.6, Ryzen 7 9700X, 4x 16 GB DDR5.
-	{"dmi-asus-b850.bin", Memory{Type: "DDR5", Speed: 4800, Size: 65536}, 3800},
+	{"dmi-supermicro-x10sri.bin", Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2400, Size: 131072}, 3600},
+	// ASUS ROG STRIX B850-E, SMBIOS 3.6, Ryzen 7 9700X, 4x 16 GB DDR5 (EXPO, configured above rated speed).
+	{"dmi-asus-b850.bin", Memory{Type: "DDR5", Speed: 4800, ConfiguredSpeed: 6000, Size: 65536}, 3800},
 	// Dell PowerEdge R240, SMBIOS 3.1, Xeon E-2274G, 2x 16 GB DDR4 in 4 slots.
-	{"dmi-dell-r240.bin", Memory{Type: "DDR4", Speed: 3200, Size: 32768}, 4000},
+	{"dmi-dell-r240.bin", Memory{Type: "DDR4", Speed: 3200, ConfiguredSpeed: 2666, Size: 32768}, 4000},
 }
 
 func TestParseDMIFiles(t *testing.T) {

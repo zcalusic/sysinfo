@@ -157,6 +157,7 @@ Build demo utility in Docker container: https://github.com/mattscilipoti/compile
   "memory": {
     "type": "DDR4",
     "speed": 2133,
+    "configuredspeed": 2133,
     "size": 32768
   },
   "storage": [
