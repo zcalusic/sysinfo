@@ -9,7 +9,9 @@ import (
 	"cmp"
 	"debug/elf"
 	"encoding/binary"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"regexp"
 	"strings"
@@ -34,6 +36,22 @@ var (
 	reRocky      = regexp.MustCompile(`^Rocky Linux release ([\d\.]+)`)
 	reRedHat     = regexp.MustCompile(`[\( ]([\d\.]+)`)
 )
+
+// osReleasePaths in order of precedence: per os-release(5), /usr/lib/os-release is read only when /etc/os-release
+// doesn't exist.
+var osReleasePaths = []string{"/etc/os-release", "/usr/lib/os-release"}
+
+// openOSRelease opens the first os-release file that exists.
+func openOSRelease() (*os.File, error) {
+	for _, path := range osReleasePaths {
+		f, err := os.Open(path)
+		if !errors.Is(err, fs.ErrNotExist) {
+			return f, err
+		}
+	}
+
+	return nil, fs.ErrNotExist
+}
 
 // EF_ARM_ABI_FLOAT_HARD from the ARM ELF ABI, set in e_flags of hard-float binaries.
 const efARMABIFloatHard = 0x400
@@ -138,7 +156,7 @@ func getOSArch() string {
 func (si *SysInfo) getOSInfo() {
 	si.OS.Architecture = getOSArch()
 
-	f, err := os.Open("/etc/os-release")
+	f, err := openOSRelease()
 	if err != nil {
 		return
 	}

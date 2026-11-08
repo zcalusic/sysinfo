@@ -8,8 +8,57 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"os"
+	"path/filepath"
 	"testing"
 )
+
+func TestOSReleaseFallback(t *testing.T) {
+	const (
+		etc = `PRETTY_NAME="Etc Linux 1"
+ID=etclinux
+VERSION_ID="1"
+`
+		usr = `PRETTY_NAME="Usr Linux 2"
+ID=usrlinux
+VERSION_ID="2"
+`
+	)
+
+	for _, tc := range []struct {
+		name     string
+		etc, usr string // file contents, "" for a missing file
+		want     OS
+	}{
+		{"only etc", etc, "", OS{Name: "Etc Linux 1", Vendor: "etclinux", Version: "1"}},
+		{"only usr lib", "", usr, OS{Name: "Usr Linux 2", Vendor: "usrlinux", Version: "2"}},
+		{"etc takes precedence", etc, usr, OS{Name: "Etc Linux 1", Vendor: "etclinux", Version: "1"}},
+		{"neither", "", "", OS{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			paths := []string{filepath.Join(dir, "etc-os-release"), filepath.Join(dir, "usr-lib-os-release")}
+			for i, content := range []string{tc.etc, tc.usr} {
+				if content != "" {
+					if err := os.WriteFile(paths[i], []byte(content), 0o644); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+
+			saved := osReleasePaths
+			osReleasePaths = paths
+			t.Cleanup(func() { osReleasePaths = saved })
+
+			var si SysInfo
+			si.getOSInfo()
+			got := si.OS
+			got.Architecture = ""
+			if got != tc.want {
+				t.Fatalf("got %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
 
 // elfHeader builds a minimal ELF header with the given class, byte order, machine and flags.
 func elfHeader(class elf.Class, data elf.Data, machine elf.Machine, flags uint32) []byte {
